@@ -1,0 +1,320 @@
+fileFormatVersion: 2
+guid: 7388de5b976c698499198303d5b5346b
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: Bed
+    100002: Camera
+    100004: Ender 3
+    100006: //RootNode
+    100008: Hotend Fan
+    100010: Light
+    100012: Print Head
+    100014: X Gantry
+    100016: Print Head_MeshPart0
+    100018: Print Head_MeshPart1
+    100020: Print Head_MeshPart2
+    100022: X Gantry_MeshPart0
+    100024: X Gantry_MeshPart1
+    100026: Wheel
+    100028: Wheel.001
+    100030: Wheel.002
+    100032: Wheel.003
+    100034: Wheel.004
+    100036: Wheel.005
+    100038: Wheel.006
+    100040: Wheel.007
+    100042: Wheel.008
+    100044: Wheel.009
+    100046: Wheel.010
+    100048: Wheel.011
+    100050: Wheel.012
+    100052: Wheel.013
+    400000: Bed
+    400002: Camera
+    400004: Ender 3
+    400006: //RootNode
+    400008: Hotend Fan
+    400010: Light
+    400012: Print Head
+    400014: X Gantry
+    400016: Print Head_MeshPart0
+    400018: Print Head_MeshPart1
+    400020: Print Head_MeshPart2
+    400022: X Gantry_MeshPart0
+    400024: X Gantry_MeshPart1
+    400026: Wheel
+    400028: Wheel.001
+    400030: Wheel.002
+    400032: Wheel.003
+    400034: Wheel.004
+    400036: Wheel.005
+    400038: Wheel.006
+    400040: Wheel.007
+    400042: Wheel.008
+    400044: Wheel.009
+    400046: Wheel.010
+    400048: Wheel.011
+    400050: Wheel.012
+    400052: Wheel.013
+    2000000: Camera
+    2100000: _auto_2
+    2100002: _auto_8
+    2100004: _auto_7
+    2100006: _auto_5
+    2100008: _auto_
+    2100010: _auto_1
+    2100012: _auto_10
+    2100014: _auto_3
+    2100016: _auto_4
+    2100018: _auto_9
+    2100020: _auto_6
+    2100022: _auto_11
+    2100024: _auto_13
+    2100026: _auto_14
+    2100028: _auto_15
+    2300000: Bed
+    2300002: Ender 3
+    2300004: Hotend Fan
+    2300006: Print Head
+    2300008: X Gantry
+    2300010: Print Head_MeshPart0
+    2300012: Print Head_MeshPart1
+    2300014: Print Head_MeshPart2
+    2300016: X Gantry_MeshPart0
+    2300018: X Gantry_MeshPart1
+    2300020: Wheel
+    2300022: Wheel.001
+    2300024: Wheel.002
+    2300026: Wheel.003
+    2300028: Wheel.004
+    2300030: Wheel.005
+    2300032: Wheel.006
+    2300034: Wheel.007
+    2300036: Wheel.008
+    2300038: Wheel.009
+    2300040: Wheel.010
+    2300042: Wheel.011
+    2300044: Wheel.012
+    2300046: Wheel.013
+    3300000: Bed
+    3300002: Ender 3
+    3300004: Hotend Fan
+    3300006: Print Head
+    3300008: X Gantry
+    3300010: Print Head_MeshPart0
+    3300012: Print Head_MeshPart1
+    3300014: Print Head_MeshPart2
+    3300016: X Gantry_MeshPart0
+    3300018: X Gantry_MeshPart1
+    3300020: Wheel
+    3300022: Wheel.001
+    3300024: Wheel.002
+    3300026: Wheel.003
+    3300028: Wheel.004
+    3300030: Wheel.005
+    3300032: Wheel.006
+    3300034: Wheel.007
+    3300036: Wheel.008
+    3300038: Wheel.009
+    3300040: Wheel.010
+    3300042: Wheel.011
+    3300044: Wheel.012
+    3300046: Wheel.013
+    4300000: Ender 3
+    4300002: Bed
+    4300004: X Gantry
+    4300006: Print Head
+    4300008: Hotend Fan
+    4300010: X Gantry_MeshPart0
+    4300012: X Gantry_MeshPart1
+    4300014: Print Head_MeshPart0
+    4300016: Print Head_MeshPart1
+    4300018: Print Head_MeshPart2
+    4300020: Wheel
+    4300022: Wheel.001
+    4300024: Wheel.002
+    4300026: Wheel.010
+    4300028: Wheel.011
+    4300030: Wheel.012
+    4300032: Wheel.013
+    4300034: Wheel.003
+    4300036: Wheel.004
+    4300038: Wheel.005
+    4300040: Wheel.006
+    4300042: Wheel.007
+    4300044: Wheel.008
+    4300046: Wheel.009
+    10800000: Light
+    2186277476908879412: ImportLogs
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_
+    second: {fileID: 2100000, guid: 53485cae32737da4792bc01131913c35, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_1
+    second: {fileID: 2100000, guid: ffa37885c7b0d2343bc7fbe10708067a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_1.001
+    second: {fileID: 2100000, guid: 0aaa0657e64d3074db26e829c3abf0f4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_10
+    second: {fileID: 2100000, guid: 148c808011482dd47a059e6b37afe6cc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_11
+    second: {fileID: 2100000, guid: 5d8090ccf9ec3b54e8897675192b43dd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_13
+    second: {fileID: 2100000, guid: 64bffec84127eab4f93afb432d7412fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_14
+    second: {fileID: 2100000, guid: 8f44140c44aa4fa4d8503560ead65593, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_15
+    second: {fileID: 2100000, guid: b1a4bdf2bd7960f47bd73b2d1c78b0c5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_2
+    second: {fileID: 2100000, guid: 66394245d19d61c43a3f11bf39dd6131, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_2.001
+    second: {fileID: 2100000, guid: 125eba46e0acb6c499a567aac1bb8157, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_3
+    second: {fileID: 2100000, guid: 2bc5634cbde8fc04f8f3020aa36837c2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_4
+    second: {fileID: 2100000, guid: 4d6ceddfb1129674b827c023d727d80f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_5
+    second: {fileID: 2100000, guid: 537b9c9799bc992419edbf2e75730ef1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_6
+    second: {fileID: 2100000, guid: a69f47d139593254f9d77308a63e0b30, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_7
+    second: {fileID: 2100000, guid: a821e683e202909438d1596c35c2546b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_8
+    second: {fileID: 2100000, guid: 4f5629ac7242bc0418e3f8ecafbfdd1a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _auto_9
+    second: {fileID: 2100000, guid: 9c5f4559ed1c5ad41afa2fbcf3479b6a, type: 2}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 3
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 0
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
+    swapUVChannels: 0
+    generateSecondaryUV: 1
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 1
+    hasPreviousCalculatedGlobalScale: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 0
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

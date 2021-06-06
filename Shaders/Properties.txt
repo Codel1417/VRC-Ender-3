@@ -1,0 +1,66 @@
+[Header(MAIN)]
+[Enum(Unity Default, 0, Non Linear, 1)]_LightProbeMethod("Light Probe Sampling", Int) = 0
+[Enum(UVs, 0, Triplanar World, 1, Triplanar Object, 2)]_TextureSampleMode("Texture Mode", Int) = 0
+_TriplanarFalloff("Triplanar Blend", Range(0.5,1)) = 1
+_MainTex ("Main Texture", 2D) = "white" {}
+_Color ("Color", Color) = (1,1,1,1)
+//#CUTOUT!_Cutoff ("Alpha Cutoff", Range(0,1)) = 0.5
+
+[Space(16)]
+[Header(NORMALS)]
+_BumpMap("Normal Map", 2D) = "bump" {}
+_BumpScale("Normal Scale", Range(-1,1)) = 1
+
+[Space(16)]
+[Header(METALLIC)]
+_MetallicGlossMap("Metallic Map", 2D) = "white" {}
+[Gamma] _Metallic("Metallic", Range(0,1)) = 0
+_Glossiness("Smoothness", Range(0,1)) = 0
+_Reflectance("Reflectance", Range(0,1)) = 0.5
+_Anisotropy("Anisotropy", Range(-1,1)) = 0
+
+[Space(16)]
+[Header(OCCLUSION)]
+_OcclusionMap("Occlusion Map", 2D) = "white" {}
+_OcclusionColor("Occlusion Color", Color) = (0,0,0,1)
+
+[Space(16)]
+[Header(SUBSURFACE)]
+[Enum(Off, 0, Estimate, 1)]_SubsurfaceMethod("Subsurface Scattering Method", Int) = 0
+_CurvatureThicknessMap("Curvature Thickness Map", 2D) = "gray" {}
+_SubsurfaceColorMap("Subsurface Color Map", 2D) = "white" {}
+_SubsurfaceScatteringColor("Subsurface Color", Color) = (1,1,1,1)
+_SubsurfaceInheritDiffuse("Subsurface Inherit Diffuse", Range(0,1)) = 0
+_TransmissionNormalDistortion("Transmission Distortion", Range(0,3)) = 1
+_TransmissionPower("Transmission Power", Range(0,3)) = 1
+_TransmissionScale("Transmission Scale", Range(0,3)) = 0.1
+
+[Space(16)]
+[Header(EMISSION)]
+_EmissionMap("Emission Map", 2D) = "white" {}
+[HDR]_EmissionColor("Emission Color", Color) = (0,0,0,1)
+
+[Space(16)]
+[Header(CLEARCOAT)]
+_ClearcoatMap("Clearcoat Map", 2D) = "white" {}
+_Clearcoat("Clearcoat", Range(0,1)) = 0
+_ClearcoatGlossiness("Clearcoat Smoothness", Range(0,1)) = 0.5
+_ClearcoatAnisotropy("Clearcoat Anisotropy", Range(-1,1)) = 0
+
+//#GEOM![Space(16)]
+//#GEOM![Header(GEOMETRY SETTINGS)]
+//#GEOM!_VertexOffset("Face Offset", float) = 0
+
+//#TESS![Space(16)]
+//#TESS![Header(GEOMETRYTESSELLATION SETTINGS)]
+//#TESS![Enum(Uniform, 0, Edge Length, 1, Distance, 2)]_TessellationMode("Tessellation Mode", Int) = 1
+//#TESS!_TessellationUniform("Tessellation Factor", Range(0,1)) = 0.05
+//#TESS!_TessClose("Tessellation Close", Float) = 10
+//#TESS!_TessFar("Tessellation Far", Float) = 50
+
+[Space(16)]
+[Header(LIGHTMAPPING HACKS)]
+_SpecularLMOcclusion("Specular Occlusion", Range(0,1)) = 0
+_SpecLMOcclusionAdjust("Spec Occlusion Sensitiviy", Range(0,1)) = 0.2
+_LMStrength("Lightmap Strength", Range(0,1)) = 1
+_RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
