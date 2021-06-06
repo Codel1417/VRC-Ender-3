@@ -10,7 +10,7 @@ using System.Diagnostics;
 public class Ender3 : UdonSharpBehaviour
 {
     const float ambientTemperature = 20f;
-    const float feedrateLimiter = 1; //30 default
+    const float feedrateLimiter = 30; //30 default
     private float fanSpeed;
     private float feedRate;
     private float currentBedTemperature;
