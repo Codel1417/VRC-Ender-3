@@ -56,6 +56,7 @@ G1 X0.4 Y20 Z0.3 F1500.0 E30 ; Draw the second line
 * Minimum extrusion temperature is 160C (Cold Extrusion Protection)
 * Incaple of filament preasure simulation
 * Supports are unnecessary as gravity is a relic of the past
+* Please do not remove any credits given.
 
 ## Credits
 
