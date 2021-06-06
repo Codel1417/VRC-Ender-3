@@ -93,6 +93,7 @@ public class Ender3 : UdonSharpBehaviour
     [Header("Audio")]
     public AudioSource fanAudio;
     public AudioSource speaker;
+    const string versionInfo = "V0.2 by CodeL1417";
     public override void OnDeserialization(){
         if (Networking.GetOwner(this.gameObject) == playerApi){
             return; //only sync to non owners
@@ -119,7 +120,7 @@ public class Ender3 : UdonSharpBehaviour
                 }
             }
         catchUpTimeout = 40;
-        lcdMessage = "V0.1 by CodeL1417";
+        lcdMessage = versionInfo;
         stopWatch.Stop();
         stopWatch.Reset();
         }
@@ -134,6 +135,13 @@ public class Ender3 : UdonSharpBehaviour
         move();
         _displayStatus();
         isPrinting = true;
+
+
+        //debug
+        currentBedTemperature = 60;
+        targetBedTemperature = 60;
+        currentHotendTemperature = 200;
+        targetHotendTemperature = 200;
     }
     public void _ToggleMesh(){
         speaker.Play();
@@ -181,7 +189,7 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void linePerformanceOption(){
         if (!isMeshHidden){
-            lineMaterial.SetFloat("Width",Mathf.InverseLerp(10,0, Vector3.Distance(playerApi.GetPosition(),transform.position)) * 0.0004f);
+            lineMaterial.SetFloat("Width",Mathf.InverseLerp(10,0, Vector3.Distance(playerApi.GetPosition(),transform.position)) * 0.0004f * transform.localScale.x);
         }
     }
     private void hideMeshes(){
@@ -306,19 +314,10 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void reset(){
         isPrinting = false;
-        isWaitingHotend = false;
-        isWaitingBed = false;
-        isFileLoaded = false;
-        gcodeFile = null;
-        isBusy = false;
-        gcodeFilePosition = 0;
         targetHotendTemperature = 0;
         targetBedTemperature = 0;
         fanSpeed = 0;
-        isPaused = false;
-        printStartTime = 0;
         isManualProgress = false;
-        printProgress = 0;
         _displayStatus();
     }
     private void cleanupMesh(){
@@ -441,14 +440,14 @@ public class Ender3 : UdonSharpBehaviour
         if (Mathf.Approximately(currentBedTemperature,targetBedTemperature)){
             if (isWaitingBed){
                 isBusy = false;
-                lcdMessage = "V0.1 by CodeL1417";
+                lcdMessage = versionInfo;
             }
             isWaitingBed = false;
         }
         if (Mathf.Approximately(currentHotendTemperature,targetHotendTemperature)){
             if (isWaitingHotend){
                 isBusy = false;
-                lcdMessage = "V0.1 by CodeL1417";
+                lcdMessage = versionInfo;
             }
             isWaitingHotend = false;
         }
