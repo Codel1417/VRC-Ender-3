@@ -26,6 +26,7 @@ public class Ender3 : UdonSharpBehaviour
     public Transform nozzle;
     public TrailRenderer trailRenderer;
     public GameObject _emptyMeshFilter;
+    public BoxCollider _pickupObject;
     private string[] gcodeFile;
     private int gcodeFilePosition = 0;
 
@@ -94,6 +95,7 @@ public class Ender3 : UdonSharpBehaviour
     public AudioSource fanAudio;
     public AudioSource speaker;
     const string versionInfo = "V0.2 by CodeL1417";
+    private float printerScale;
     public override void OnDeserialization(){
         if (Networking.GetOwner(this.gameObject) == playerApi){
             return; //only sync to non owners
@@ -126,6 +128,7 @@ public class Ender3 : UdonSharpBehaviour
         }
     }
     void Start(){
+        printerScale = transform.localScale.x;
         lineMaterial = trailRenderer.sharedMaterial;
         playerApi = Networking.LocalPlayer;
         normalPosition = new Vector3(0.5f,0.5f,0.3f);
@@ -135,20 +138,32 @@ public class Ender3 : UdonSharpBehaviour
         move();
         _displayStatus();
         isPrinting = true;
-
+        lineMaterial.SetFloat("_MaxSegmentLength",0.1f * printerScale);
+        lineMaterial.SetFloat("_Width",0.0004f * printerScale);
 
         //debug
-        currentBedTemperature = 60;
-        targetBedTemperature = 60;
-        currentHotendTemperature = 200;
-        targetHotendTemperature = 200;
+        //currentBedTemperature = 60;
+        //targetBedTemperature = 60;
+        //currentHotendTemperature = 200;
+        //targetHotendTemperature = 200;
+    }
+    public void _printFinished(){
+        lcdMessage = "Finished";
+        generateMesh();
+        reset();
+        for (int i = 0; i < meshObjectCount; i++){
+            if (Utilities.IsValid(meshObjects[i])){
+                meshObjects[i].transform.SetParent(_pickupObject.transform);
+            }
+        }
+        _pickupObject.enabled = true;
     }
     public void _ToggleMesh(){
         speaker.Play();
         isMeshHidden = !isMeshHidden;
         hideMeshes();
     }
-    void Update()
+    void FixedUpdate()
     {
         periodically();
         fan();
@@ -162,9 +177,7 @@ public class Ender3 : UdonSharpBehaviour
                         gcodeFilePosition++;
                     }
                     else {
-                        lcdMessage = "Finished";
-                        generateMesh();
-                        reset();
+                        _printFinished();
                     }
 
                 }
@@ -189,7 +202,7 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void linePerformanceOption(){
         if (!isMeshHidden){
-            lineMaterial.SetFloat("Width",Mathf.InverseLerp(10,0, Vector3.Distance(playerApi.GetPosition(),transform.position)) * 0.0004f * transform.localScale.x);
+            lineMaterial.SetFloat("_Width",Mathf.InverseLerp(8,0, Vector3.Distance(playerApi.GetPosition(),transform.position)) * 0.0004f * printerScale);
         }
     }
     private void hideMeshes(){
@@ -311,6 +324,7 @@ public class Ender3 : UdonSharpBehaviour
         TextPageTitle.color = foregroundColor;
         imageBackButton.color = foregroundColor;
         imageSD.color = foregroundColor;
+        textCredits.color = foregroundColor;
     }
     private void reset(){
         isPrinting = false;
@@ -371,6 +385,7 @@ public class Ender3 : UdonSharpBehaviour
             if (isExtrude){
                 //Cold Extrusion Prevention
                 if (currentHotendTemperature  > 160f){
+                    //The Nozzle isnt actually moving in the Y axis (Z World). We have to move the trail position to simulate the movement of the bed.
                     trailRenderer.AddPosition(new Vector3(nozzle.position.x, nozzle.position.y, Mathf.Lerp(transform.TransformPoint(yOffset).z,transform.TransformPoint(maxPosition).z, currentPosition.y)));
                 }
                 else {
@@ -397,8 +412,10 @@ public class Ender3 : UdonSharpBehaviour
             meshObjectCount++;
     }
     private void moveTrail(){
+        var worldoffset = transform.TransformVector(trailOffset);
         //Y axis scaling incorrect.
         lineMaterial.SetVector("_PositionOffset",new Vector3(YAxis.position.x + trailOffset.x ,trailOffset.y ,YAxis.position.z + trailOffset.z));
+        lineMaterial.SetVector("_PositionOffset",new Vector3(YAxis.position.x + worldoffset.x ,trailOffset.y + worldoffset.y, YAxis.position.z + worldoffset.z));
     }
     private void move(){
         currentPosition.x =  Mathf.SmoothDamp(currentPosition.x, normalPosition.x, ref velocity.x, 0f, Mathf.Clamp(feedRate,0,500));
