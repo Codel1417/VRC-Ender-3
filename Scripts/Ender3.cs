@@ -202,7 +202,7 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void linePerformanceOption(){
         if (!isMeshHidden){
-            lineMaterial.SetFloat("_Width",Mathf.InverseLerp(8,0, Vector3.Distance(playerApi.GetPosition(),transform.position)) * 0.0004f * printerScale);
+            lineMaterial.SetFloat("_Width",Mathf.InverseLerp(8,0, Vector3.Distance(playerApi.GetPosition(),_pickupObject.transform.position)) * 0.0004f * printerScale);
         }
     }
     private void hideMeshes(){
