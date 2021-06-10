@@ -11,8 +11,6 @@ This is a functional 3d printer in VRChat which prints real [Marlin](https://mar
 
 1) Import the project into your Unity Project
 2) Place the prefab in your world
-    * Do not rotate the prefab
-    * Do not commit tax fraud
 3) Change the file extention of your '.gcode file to '.txt'
     * You may need to Check 'Show File Extentions' in windows explorer.
 4) In the Ender 3 VRC gameobject assign the 'Gcode Text File' variable to your custom gcode '.txt' file.

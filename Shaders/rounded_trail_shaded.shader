@@ -243,7 +243,7 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 					secondUV = IN[1].uv;
 					midUV = IN[2].uv;
 				}
-				if (abs(secondUV.x - firstUV.x) > 0.5) {
+				if (abs(secondUV.x - firstUV.x) > _MaxSegmentLength) {
 					return;
 				}
 				float3 localTangent = normalize(secondVertex.xyz - firstVertex.xyz);

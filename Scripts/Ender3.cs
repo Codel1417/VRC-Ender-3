@@ -9,20 +9,35 @@ using System.Diagnostics;
 
 public class Ender3 : UdonSharpBehaviour
 {
+    [Header("GCode")]
+    public TextAsset gcodeTextFile;
     const float ambientTemperature = 20f;
-    const float feedrateLimiter = 30; //30 default
+    [Header("Speed")]
+    [Tooltip("Slows down the print to more realistic speeds, higher is slower")]
+    [Range(60f,1f)]
+    public float feedrateLimiter = 30f; //30 default
+
+    [Header("Colors")]
+    public Color backgroundColor;
+    public Color foregroundColor;
+    public Color plasticColor;
+
     private float fanSpeed;
     private float feedRate;
     private float currentBedTemperature;
     private float targetBedTemperature;
     private float currentHotendTemperature;
     private float targetHotendTemperature;
-
+    [Space(200)]
     [Header("Objects")]
+    [Tooltip("Vertical Axis")]
     public Transform ZAxis;
+    [Tooltip("Forword/Back Axis")]
     public Transform YAxis;
+    [Tooltip("Left/Right Axis")]
     public Transform XAxis;
     public Transform printFan;
+    [Tooltip("The point the hotend nozzle is located")]
     public Transform nozzle;
     public TrailRenderer trailRenderer;
     public GameObject _emptyMeshFilter;
@@ -34,19 +49,16 @@ public class Ender3 : UdonSharpBehaviour
     [UdonSynced]
     public int networkFilePosition = 0;
 
-    [Header("GCode")]
-    public TextAsset gcodeTextFile;
     [Header("Position Data")]
     [Tooltip("This is the 0 position of the object that moves on the X Axis")]
-    public Vector3 xOffset = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f);
+    private Vector3 xOffset = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f);
     [Tooltip("This is the 0 position of the object that moves on the Y Axis")]
-    public Vector3 yOffset = new Vector3(-0.07813719f,0.03400593f,0.06497317f);
+    private Vector3 yOffset = new Vector3(-0.07813719f,0.03400593f,0.06497317f);
     [Tooltip("This is the 0 position of the object that moves on the Z (Vertical) Axis")]
-    public Vector3 zOffset = new Vector3(-0.1708187f,-0.0317542f,0.004123815f);
-    [Tooltip("This alligns the trail with the nozzle of the printer")]
-    public Vector3 trailOffset = new Vector3(-0.09f,0f,0.09f);
+    private Vector3 zOffset = new Vector3(-0.1708187f,-0.0317542f,0.0055f);
+
     [Tooltip("The furthest position each object can move on each axis")]
-    public Vector3 maxPosition = new Vector3(0.2009f,-0.20f,-0.24f);
+    private Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
     private Vector3 printerSizeInMM = new Vector3(235,235,250);
     private Vector3 normalPosition;
     private Vector3 velocity;
@@ -59,17 +71,11 @@ public class Ender3 : UdonSharpBehaviour
     private bool isWaitingHotend, isWaitingBed = false;
     private bool isManualProgress = false;
     private float printProgress = 0;
-    [Tooltip("Hides the baked meshes for performance")]
     private bool isMeshHidden = false;
 
-    [Header("Colors")]
-    public Color backgroundColor;
-    public Color foregroundColor;
-    public Color plasticColor;
     [Header("Display")]
     public GameObject statusPage;
     private string lcdMessage;
-
     public Text textStatus;
     public Text textHotendTargetTemperature, textHotendCurrentTemperature, textBedCurrentTemperature, textBedTargetTemperature, textFanSpeed, textFeedRate, textPrinterName, textXPos, textYPos, textZPos, textTime,TextPageTitle, textCredits, textCancel, TextConfirmation;
     public Slider textPrintProgress;
@@ -88,13 +94,12 @@ public class Ender3 : UdonSharpBehaviour
     private VRCPlayerApi playerApi;
     private bool extrudeCheck = false;
     private Stopwatch stopWatch = new Stopwatch();
-    const int maxNetworkGap = 1000;
     private Material lineMaterial;
     private int catchUpTimeout = 5000;
     [Header("Audio")]
     public AudioSource fanAudio;
     public AudioSource speaker;
-    const string versionInfo = "V0.2 by CodeL1417";
+    const string versionInfo = "V0.3 by CodeL1417";
     private float printerScale;
     public override void OnDeserialization(){
         if (Networking.GetOwner(this.gameObject) == playerApi){
@@ -102,7 +107,7 @@ public class Ender3 : UdonSharpBehaviour
         }
         stopWatch.Start();
         var gap = networkFilePosition - gcodeFilePosition;
-        if (gap > maxNetworkGap){
+        if (gap > 1000){
             UnityEngine.Debug.Log("[ENDER 3] Catching Up. " + gap + " lines behind");
             isWaitingBed = false;
             isWaitingHotend = false;
@@ -139,13 +144,15 @@ public class Ender3 : UdonSharpBehaviour
         _displayStatus();
         isPrinting = true;
         lineMaterial.SetFloat("_MaxSegmentLength",0.1f * printerScale);
-        lineMaterial.SetFloat("_Width",0.0004f * printerScale);
+        lineMaterial.SetFloat("_Width",0.00035f * printerScale);
+
+
 
         //debug
-        //currentBedTemperature = 60;
-        //targetBedTemperature = 60;
-        //currentHotendTemperature = 200;
-        //targetHotendTemperature = 200;
+        currentBedTemperature = 60;
+        targetBedTemperature = 60;
+        currentHotendTemperature = 200;
+        targetHotendTemperature = 200;
     }
     public void _printFinished(){
         lcdMessage = "Finished";
@@ -161,7 +168,11 @@ public class Ender3 : UdonSharpBehaviour
     public void _ToggleMesh(){
         speaker.Play();
         isMeshHidden = !isMeshHidden;
-        hideMeshes();
+        for (int i = 0; i < meshObjectCount; i++){
+            if (Utilities.IsValid(meshObjects[i])){
+                meshObjects[i].gameObject.SetActive(!isMeshHidden);
+            }
+        }    
     }
     void FixedUpdate()
     {
@@ -202,16 +213,8 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void linePerformanceOption(){
         if (!isMeshHidden){
-            lineMaterial.SetFloat("_Width",Mathf.InverseLerp(8,0, Vector3.Distance(playerApi.GetPosition(),_pickupObject.transform.position)) * 0.0004f * printerScale);
+            lineMaterial.SetFloat("_Width",Mathf.InverseLerp(8,0, Vector3.Distance(playerApi.GetPosition(),_pickupObject.transform.position)) * 0.00035f * printerScale);
         }
-    }
-    private void hideMeshes(){
-        for (int i = 0; i < meshObjectCount; i++){
-            if (Utilities.IsValid(meshObjects[i])){
-                meshObjects[i].gameObject.SetActive(!isMeshHidden);
-            }
-        }
-
     }
     private void periodically(){
         timeMin = timeMin + Time.deltaTime;
@@ -385,8 +388,11 @@ public class Ender3 : UdonSharpBehaviour
             if (isExtrude){
                 //Cold Extrusion Prevention
                 if (currentHotendTemperature  > 160f){
+                    var nozzleLocal = transform.InverseTransformPoint(nozzle.position);
+                    var point = new Vector3(nozzleLocal.x, nozzleLocal.y, Mathf.Lerp(yOffset.y ,maxPosition.y, currentPosition.y));
                     //The Nozzle isnt actually moving in the Y axis (Z World). We have to move the trail position to simulate the movement of the bed.
-                    trailRenderer.AddPosition(new Vector3(nozzle.position.x, nozzle.position.y, Mathf.Lerp(transform.TransformPoint(yOffset).z,transform.TransformPoint(maxPosition).z, currentPosition.y)));
+                    trailRenderer.AddPosition(transform.TransformPoint(point));
+
                 }
                 else {
                     isExtrude = false;
@@ -394,7 +400,7 @@ public class Ender3 : UdonSharpBehaviour
                 }
             }
             else {
-                trailRenderer.AddPosition(new Vector3(nozzle.position.x,nozzle.position.y -20, nozzle.position.z));
+                trailRenderer.AddPosition(new Vector3(nozzle.position.x,nozzle.position.y - (20 * printerScale), nozzle.position.z));
             }
         }
         else {
@@ -412,10 +418,10 @@ public class Ender3 : UdonSharpBehaviour
             meshObjectCount++;
     }
     private void moveTrail(){
-        var worldoffset = transform.TransformVector(trailOffset);
+        var worldoffset = transform.TransformVector(new Vector3(0,0,(-YAxis.localPosition.y) + 0.089f));
         //Y axis scaling incorrect.
-        lineMaterial.SetVector("_PositionOffset",new Vector3(YAxis.position.x + trailOffset.x ,trailOffset.y ,YAxis.position.z + trailOffset.z));
-        lineMaterial.SetVector("_PositionOffset",new Vector3(YAxis.position.x + worldoffset.x ,trailOffset.y + worldoffset.y, YAxis.position.z + worldoffset.z));
+        // lineMaterial.SetVector("_PositionOffset",new Vector3(YAxis.position.x + worldoffset.x , 0f , YAxis.position.z + worldoffset.z));
+        lineMaterial.SetVector("_PositionOffset",worldoffset);
     }
     private void move(){
         currentPosition.x =  Mathf.SmoothDamp(currentPosition.x, normalPosition.x, ref velocity.x, 0f, Mathf.Clamp(feedRate,0,500));
