@@ -1,5 +1,7 @@
 # VRChat Ender 3 Udon 3D Printer
 
+![Discord](https://img.shields.io/discord/545567251575865365?label=Discord&style=for-the-badge)
+
 This is a functional 3d printer in VRChat which prints real [Marlin](https://marlinfw.org/docs/gcode/G000-G001.html) gcode files. Print progress is synced over the network.
 
 ## Requirements
