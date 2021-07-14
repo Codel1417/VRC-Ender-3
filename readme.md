@@ -8,6 +8,7 @@ This is a functional 3d printer in VRChat which prints real [Marlin](https://mar
 
 * VRChat SDK 3 World
 * [UdonSharp](https://github.com/MerlinVR/UdonSharp) by Merlin
+* [UdonToolkit](https://github.com/orels1/UdonToolkit) by orels1
 
 ## How to use
 
@@ -38,7 +39,10 @@ G1 X0.4 Y20 Z0.3 F1500.0 E30 ; Draw the second line
 
 * G0/G1 Linear Move
 * G28 Auto Home
+* G90 Absolute Positioning
+* M25 Pause
 * M73 Set Print Progress
+* M82 Relative Positioning
 * M104 Set Hotend Temperature
 * M106 Set Fan Speed
 * M107 Fan Off
@@ -50,14 +54,14 @@ G1 X0.4 Y20 Z0.3 F1500.0 E30 ; Draw the second line
 
 ## Notes
 
-* Relative Positioning is not supported
-* Print Bed size is 235X 235Y 250Z
-* Minimum extrusion temperature is 160C (Cold Extrusion Protection)
-* Incaple of filament preasure simulation
-* Supports are unnecessary as gravity is a relic of the past
-* Please do not remove any credits given.
+* Print Bed size is 235X 235Y 250Z.
+* Minimum extrusion temperature is 160C (Cold Extrusion Protection).
+* Incaple of filament preasure simulation.
+* Supports are unnecessary as gravity is a relic of the past.
+* Please do not remove any credits given, Just append to the credits page.
 
 ## Credits
 
-* Filament Shader by [Lyuma](https://github.com/lyuma), [Xiexe](https://github.com/Xiexe)
+* Filament Shader by [Lyuma](https://github.com/lyuma)
+* Lighting Template by [Xiexe](https://github.com/Xiexe)
 * UdonSharp by [Merlin](https://github.com/MerlinVR/UdonSharp)  
