@@ -93,7 +93,7 @@ Material:
     - _GlossyReflections: 1
     - _LMStrength: 1
     - _LightProbeMethod: 0
-    - _MaxSegmentLength: 0.2
+    - _MaxSegmentLength: 0.1
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
@@ -113,11 +113,11 @@ Material:
     - _TransmissionScale: 0.1
     - _TriplanarFalloff: 0.5
     - _UVSec: 0
-    - _Width: 0.0007
+    - _Width: 0.00035
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 0, b: 0, a: 1}
+    - _Color: {r: 255, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _OcclusionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _PositionOffset: {r: 0, g: 0, b: 0.3945374, a: 0}
+    - _PositionOffset: {r: 0, g: 0, b: 0.028049946, a: 0}
     - _SubsurfaceScatteringColor: {r: 0, g: 0, b: 0, a: 1}

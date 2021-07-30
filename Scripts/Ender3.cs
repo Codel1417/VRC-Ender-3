@@ -8,10 +8,8 @@ using VRC.SDK3.Components;
 using System.Globalization;
 using System.Diagnostics;
 using UdonToolkit;
+using VRC.Udon.Common.Interfaces;
 
-#if !COMPILER_UDONSHARP && UNITY_EDITOR
-using UnityEditor;
-#endif
 [CustomName("Ender VR")]
 [HelpMessage("A fully functional 3d printer in VRChat")]
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
@@ -87,12 +85,19 @@ public class Ender3 : UdonSharpBehaviour
     [UdonSynced]
     [HideInInspector]
     public int networkFilePosition = 0;
-    private Vector3 xOffset = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f);
-    private Vector3 yOffset = new Vector3(-0.07813719f,0.03400593f,0.06497317f);
-    private Vector3 zOffset = new Vector3(-0.1708187f,-0.0317542f,0.0055f);
-    private Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
+    [NonSerialized] public string[] popupOptions = {"X Axis", "Y Axis", "Z Axis"};
+    [SectionHeader("Axis Assignment")]
+    public Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f); 
+    [Popup("@popupOptions")]
+    public int xAxisMovementAxis;
+    [Popup("@popupOptions")]
+    public int yAxisMovementAxis;
+    [Popup("@popupOptions")]
+    public int zAxisMovementAxis;
+    [HelpBox("The max position for each axis. How far should each axis move")]
+    public Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
     private Vector3 printerSizeInMM = new Vector3(235,235,250);
-    private Vector3 normalPosition;
+    public Vector3 normalPosition;
     private Vector3 calcVelocity, currentPosition, printerCordPosition;
     private Vector3 velocity;
     private bool isBusy = false;
@@ -138,7 +143,7 @@ public class Ender3 : UdonSharpBehaviour
     public  AudioSource fanAudio;
     [FoldoutGroup("Objects")]
     public AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
-    const string versionInfo = "V0.4 by CodeL1417";
+    const string versionInfo = "V1.1 by CodeL1417";
     private float printerScale;
     private string[] options;
     //Where does the top of the 4 displayed options begin
@@ -147,6 +152,7 @@ public class Ender3 : UdonSharpBehaviour
     private bool lastSyncSuccessful = true;
     private int totalVertices = 0;
     private bool isRelativeMovement = false;
+    public float trailOffset = 0f;
 
     void Start(){
         printerScale = transform.localScale.x;
@@ -172,8 +178,7 @@ public class Ender3 : UdonSharpBehaviour
             targetBedTemperature = 60;
             currentHotendTemperature = 200;
             targetHotendTemperature = 200;
-            networkFilePosition= demoStartPosition;
-            reSync();
+            networkFilePosition = demoStartPosition;
         }
     }
     public override void OnPreSerialization(){
@@ -241,9 +246,11 @@ public class Ender3 : UdonSharpBehaviour
             }
         }    
     }
+    void Update() {
+        reSync();
+    }
     void FixedUpdate()
     {
-        reSync();
         heaters();
         move();
         motorSounds();
@@ -255,12 +262,12 @@ public class Ender3 : UdonSharpBehaviour
                         gcodeFilePosition++;
                     }
                     else {
-                        SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "printFinished");
+                        SendCustomNetworkEvent(NetworkEventTarget.All, "printFinished");
                     }
                 }
             }
             else {
-                SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "startPrint");
+                SendCustomNetworkEvent(NetworkEventTarget.All, "startPrint");
             }
         }
         periodically();
@@ -270,7 +277,9 @@ public class Ender3 : UdonSharpBehaviour
         if (timeMin >= 1f){
             timeMin = timeMin - 1;
             display();
-            RequestSerialization(); //Manual Sync go burr
+            if (!demoMode){
+                RequestSerialization(); //Manual Sync go burr
+            }
         }
         else if (pageDepth != 0) {
             display();
@@ -286,7 +295,9 @@ public class Ender3 : UdonSharpBehaviour
         gcodeFilePosition = 0;
         networkFilePosition = 0;
         cleanupMesh();
-        RequestSerialization();
+        if (!demoMode){
+            RequestSerialization();
+        }
     }
     //clears them display
     private void resetDisplay(){
@@ -340,9 +351,9 @@ public class Ender3 : UdonSharpBehaviour
     public void _confirm(){
         if (Networking.IsMaster && !demoMode){
             switch (TextPageTitle.text) {
-                case "Start Print?": _displayStatus(); SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,"startPrint"); break;
-                case "Cancel Print?": SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,"printFinished"); _displayStatus(); break;
-                case "Reset Printer?": SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All,"resetPrinter"); _displayStatus(); _displayStatus(); break;
+                case "Start Print?": _displayStatus(); SendCustomNetworkEvent(NetworkEventTarget.All,"startPrint"); break;
+                case "Cancel Print?": SendCustomNetworkEvent(NetworkEventTarget.All,"printFinished"); _displayStatus(); break;
+                case "Reset Printer?": SendCustomNetworkEvent(NetworkEventTarget.All,"resetPrinter"); _displayStatus(); _displayStatus(); break;
                 case "Enter Gcode": _displayStatus(); gcodeFile = gcodeInput.text.Split('\n'); isPrinting = true; isFileLoaded = true; gcodeFilePosition = 0; networkFilePosition = 0; break;
                 default: _back(); break;
             }
@@ -463,7 +474,9 @@ public class Ender3 : UdonSharpBehaviour
         extrudeCheck = false;
         lcdMessage = versionInfo;
         totalVertices = 0;
-        RequestSerialization();
+        if (!demoMode){
+            RequestSerialization();
+        }
     }
     private void cleanupMesh(){
         if (demoMode){
@@ -591,7 +604,9 @@ public class Ender3 : UdonSharpBehaviour
         _displayStatus();
         speaker.Play();
         lcdMessage = "SD Card Inserted";
-        RequestSerialization();
+        if (!demoMode){
+            RequestSerialization();
+        }
     }
     public void _up(){
 
@@ -723,7 +738,7 @@ public class Ender3 : UdonSharpBehaviour
                 break;
             case "Mesh": textPage.text = "Mesh Count: " + meshObjectCount + "\nTrail Size: " + trailRenderer.positionCount + "\nisMeshHidden: " + isMeshHidden + "\nTrailOffset: " + lineMaterial.GetVector("_PositionOffset") + "\nMesh vertices: " + totalVertices ;  break;
             case "Network": textPage.text = "isClogged: " + Networking.IsClogged + "\nisInstanceOwner: " + Networking.IsInstanceOwner + "\nisMaster: " + Networking.IsMaster + "\nisNetworkSettled: " + Networking.IsNetworkSettled + "\nisLastSyncSucessful: " + lastSyncSuccessful + "\nlastSyncBytes: " + lastSyncByteCount + "\nOwner: " + Networking.GetOwner(this.gameObject).displayName; break; //breaks in Unity
-            case "Credits": textPage.text = "-Code by Codel1417, Lyuma \n-Shader by Lyuma, phi16, Xiexe\n-UdonSharp By Merlin"; break;
+            case "Credits": textPage.text = "-Code by Codel1417, Lyuma \n-Shader by Lyuma, phi16, Xiexe\n-UdonSharp By Merlin\n-Models by Creality3D, Playingbadly"; break;
         }
     }
     private void addVertToTrail(bool isExtrude){
@@ -732,7 +747,12 @@ public class Ender3 : UdonSharpBehaviour
                 //Cold Extrusion Prevention
                 if (currentHotendTemperature  > 160f){
                     var nozzleLocal = transform.InverseTransformPoint(nozzle.position);
-                    var point = new Vector3(nozzleLocal.x, nozzleLocal.y, Mathf.Lerp(yOffset.y ,maxPosition.y, currentPosition.y));
+                    Vector3 point = Vector3.zero;
+                    switch (yAxisMovementAxis){
+                        case 0: point = new Vector3(nozzleLocal.x, nozzleLocal.y, -Mathf.Lerp(minPosition.y ,maxPosition.y, currentPosition.y)); break;
+                        case 1: point = new Vector3(nozzleLocal.x, nozzleLocal.y, -Mathf.Lerp(minPosition.y ,maxPosition.y, currentPosition.y)); break;
+                        case 2: point = new Vector3(nozzleLocal.x, nozzleLocal.y, -Mathf.Lerp(minPosition.y ,maxPosition.y, currentPosition.y)); break;
+                    }
                     //The Nozzle isnt actually moving in the Y axis (Z World). We have to move the trail position to simulate the movement of the bed.
                     trailRenderer.AddPosition(transform.TransformPoint(point));
                     totalVertices = totalVertices + 2; //technically the shader adds 4 per vert 
@@ -788,7 +808,9 @@ public class Ender3 : UdonSharpBehaviour
             case "Move Z Axis": printerCordPosition.z =  Mathf.Clamp(printerCordPosition.z + value,0,printerSizeInMM.z); normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, printerCordPosition.z + value); isBusy = true; break;
         }
         displayValue();
-        RequestSerialization();
+        if(!demoMode){
+            RequestSerialization();
+        }
     }
     public void _add1(){
         updateValue(1);
@@ -816,22 +838,50 @@ public class Ender3 : UdonSharpBehaviour
 
         calcVelocity = (previousPosition - currentPosition) * 50; //used for sound
 
-        XAxis.localPosition = new Vector3(Mathf.Lerp(xOffset.x, maxPosition.x, currentPosition.x), xOffset.y, xOffset.z);
-        YAxis.localPosition = new Vector3(yOffset.x,Mathf.Lerp(yOffset.y,maxPosition.y, currentPosition.y),yOffset.z);
-        ZAxis.localPosition = new Vector3(zOffset.x,zOffset.y,Mathf.Lerp(zOffset.z,maxPosition.z,currentPosition.z));
+        switch (xAxisMovementAxis){
+            case 0: XAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x), XAxis.localPosition.y, XAxis.localPosition.z); break;
+            case 1: XAxis.localPosition = new Vector3(XAxis.localPosition.x, Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x), XAxis.localPosition.z); break;
+            case 2: XAxis.localPosition = new Vector3(XAxis.localPosition.x, XAxis.localPosition.y, Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x)); break;
+        }
+        switch (yAxisMovementAxis){
+            case 0: YAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.y,maxPosition.y, currentPosition.y),YAxis.localPosition.y,YAxis.localPosition.z); break;
+            case 1: YAxis.localPosition = new Vector3(YAxis.localPosition.x,Mathf.Lerp(minPosition.y,maxPosition.y, currentPosition.y),YAxis.localPosition.z); break;
+            case 2: YAxis.localPosition = new Vector3(YAxis.localPosition.x,YAxis.localPosition.y,Mathf.Lerp(minPosition.y,maxPosition.y, currentPosition.y)); break;
+        }
+        switch (zAxisMovementAxis){
+            case 0: ZAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.z,maxPosition.z,currentPosition.z),ZAxis.localPosition.y,ZAxis.localPosition.z); break;
+            case 1: ZAxis.localPosition = new Vector3(ZAxis.localPosition.x,Mathf.Lerp(minPosition.z,maxPosition.z,currentPosition.z),ZAxis.localPosition.z); break;
+            case 2: ZAxis.localPosition = new Vector3(ZAxis.localPosition.x,ZAxis.localPosition.y,Mathf.Lerp(minPosition.z,maxPosition.z,currentPosition.z)); break;
+        }
         if (Mathf.Approximately(currentPosition.x,normalPosition.x) && Mathf.Approximately(currentPosition.y,normalPosition.y) && Mathf.Approximately(currentPosition.z,normalPosition.z)){
             isBusy = false;
             if (extrudeCheck){
                 addVertToTrail(extrudeCheck);
             }
         }
-        lineMaterial.SetVector("_PositionOffset",transform.TransformVector(new Vector3(0,0,(-YAxis.localPosition.y) + 0.089f)));
+        switch (yAxisMovementAxis){
+            case 0: lineMaterial.SetVector("_PositionOffset",transform.TransformVector(new Vector3(0,0,(YAxis.localPosition.x) - trailOffset))); break;
+            case 1: lineMaterial.SetVector("_PositionOffset",transform.TransformVector(new Vector3(0,0,(YAxis.localPosition.y) - trailOffset))); break;
+            case 2: lineMaterial.SetVector("_PositionOffset",transform.TransformVector(new Vector3(0,0,(YAxis.localPosition.z) - trailOffset))); break;
+        }
     }
     private void fastMove(){
         currentPosition = normalPosition;
-        XAxis.localPosition = new Vector3(Mathf.Lerp(xOffset.x, maxPosition.x, normalPosition.x), xOffset.y, xOffset.z);
-        YAxis.localPosition = new Vector3(yOffset.x,Mathf.Lerp(yOffset.y,maxPosition.y, normalPosition.y),yOffset.z);
-        ZAxis.localPosition = new Vector3(zOffset.x,zOffset.y,Mathf.Lerp(zOffset.z,maxPosition.z,normalPosition.z));
+        switch (xAxisMovementAxis){
+            case 0: XAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x), XAxis.localPosition.y, XAxis.localPosition.z); break;
+            case 1: XAxis.localPosition = new Vector3(XAxis.localPosition.x, Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x), XAxis.localPosition.z); break;
+            case 2: XAxis.localPosition = new Vector3(XAxis.localPosition.x, XAxis.localPosition.y, Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x)); break;
+        }
+        switch (yAxisMovementAxis){
+            case 0: YAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.y,maxPosition.y, currentPosition.y),YAxis.localPosition.y,YAxis.localPosition.z); break;
+            case 1: YAxis.localPosition = new Vector3(YAxis.localPosition.x,Mathf.Lerp(minPosition.y,maxPosition.y, currentPosition.y),YAxis.localPosition.z); break;
+            case 2: YAxis.localPosition = new Vector3(YAxis.localPosition.x,YAxis.localPosition.y,Mathf.Lerp(minPosition.y,maxPosition.y, currentPosition.y)); break;
+        }
+        switch (zAxisMovementAxis){
+            case 0: ZAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.z,maxPosition.z,currentPosition.z),ZAxis.localPosition.y,ZAxis.localPosition.z); break;
+            case 1: ZAxis.localPosition = new Vector3(ZAxis.localPosition.x,Mathf.Lerp(minPosition.z,maxPosition.z,currentPosition.z),ZAxis.localPosition.z); break;
+            case 2: ZAxis.localPosition = new Vector3(ZAxis.localPosition.x,ZAxis.localPosition.y,Mathf.Lerp(minPosition.z,maxPosition.z,currentPosition.z)); break;
+        }
         isBusy = false;
         if (extrudeCheck){
             addVertToTrail(extrudeCheck);
@@ -1060,25 +1110,4 @@ public class Ender3 : UdonSharpBehaviour
         lcdMessage ="Heating Bed";
         M140(words);
     }
-
-    #if !COMPILER_UDONSHARP && UNITY_EDITOR
-    //TODO move to own class
-        public void ExportMesh() {
-            if (meshObjectCount > 0) {
-                CombineInstance[] combine = new CombineInstance[meshObjectCount];
-                for (int i = 0; i < meshObjectCount; i++){
-                    combine[i].mesh = meshObjects[i].sharedMesh;
-                }
-                Mesh combMesh = new Mesh();
-                combMesh.CombineMeshes(combine);
-                AssetDatabase.CreateAsset(combMesh, "Assets/Ender 3/generatedMeshes/"+ ModelName[gcodeFileSelected] + ".asset");
-                UnityEngine.Debug.Log("[ENDER 3] Mesh Verts: " + combMesh.vertexCount);
-            }
-        }
-    #endif
-    #if UNITY_EDITOR
-        public void testNetwork(){
-            networkFilePosition = 100000;
-        }
-    #endif
 }
