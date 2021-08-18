@@ -48,11 +48,6 @@ public class Ender3 : UdonSharpBehaviour
     [Tooltip("Automatically print file 0 on sd card 0")]
     public bool AutoStartPrint = false;
 
-    [HelpBox("Demo Mode disables print controls and autostarts slot 0. Meshes are not generated. This is NOT RECOMMENDED due to performance")]
-    public bool demoMode = false;
-    [HideIf("@!demoMode")]
-    public int demoStartPosition = 0;
-
     [FoldoutGroup("Objects")]
     [SectionHeader("Printer Objects")]
     [Tooltip("Vertical Axis")]
@@ -97,7 +92,7 @@ public class Ender3 : UdonSharpBehaviour
     [HelpBox("The max position for each axis. How far should each axis move")]
     public Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
     private Vector3 printerSizeInMM = new Vector3(235,235,250);
-    public Vector3 normalPosition;
+    private Vector3 normalPosition;
     private Vector3 calcVelocity, currentPosition, printerCordPosition;
     private Vector3 velocity;
     private bool isBusy = false;
@@ -172,14 +167,8 @@ public class Ender3 : UdonSharpBehaviour
         updateAudioVolume();
         isPrinting = AutoStartPrint;
         readFile(GCode[0]); //load default file
-        if (demoMode){
-            isPrinting = true;
-            currentBedTemperature = 60;
-            targetBedTemperature = 60;
-            currentHotendTemperature = 200;
-            targetHotendTemperature = 200;
-            networkFilePosition = demoStartPosition;
-        }
+
+        //generateBounds();
     }
     public override void OnPreSerialization(){
         if (Networking.IsOwner(this.gameObject)){
@@ -194,15 +183,14 @@ public class Ender3 : UdonSharpBehaviour
         isManualProgress = false;
         extrudeCheck = false;
         lcdMessage = "Finished";
-        if (!demoMode){
             generateMesh();
             for (int i = 0; i < meshObjectCount; i++){
                 if (Utilities.IsValid(meshObjects[i])){
                     meshObjects[i].transform.SetParent(_pickupObject.transform);
                 }
             }
+
             _pickupObject.enabled = true;
-        }
     }
     private void reSync(){
         var gap = networkFilePosition - gcodeFilePosition;
@@ -236,9 +224,6 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void _ToggleMesh(){
         speaker.Play();
-        if (!demoMode){
-            return;
-        }
         isMeshHidden = !isMeshHidden;
         for (int i = 0; i < meshObjectCount; i++){
             if (Utilities.IsValid(meshObjects[i])){
@@ -277,9 +262,7 @@ public class Ender3 : UdonSharpBehaviour
         if (timeMin >= 1f){
             timeMin = timeMin - 1;
             display();
-            if (!demoMode){
-                RequestSerialization(); //Manual Sync go burr
-            }
+            RequestSerialization(); //Manual Sync go burr
         }
         else if (pageDepth != 0) {
             display();
@@ -295,9 +278,7 @@ public class Ender3 : UdonSharpBehaviour
         gcodeFilePosition = 0;
         networkFilePosition = 0;
         cleanupMesh();
-        if (!demoMode){
-            RequestSerialization();
-        }
+        RequestSerialization();
     }
     //clears them display
     private void resetDisplay(){
@@ -349,7 +330,7 @@ public class Ender3 : UdonSharpBehaviour
         imageBackButton.gameObject.SetActive(true);
     }
     public void _confirm(){
-        if (Networking.IsMaster && !demoMode){
+        if (Networking.IsMaster){
             switch (TextPageTitle.text) {
                 case "Start Print?": _displayStatus(); SendCustomNetworkEvent(NetworkEventTarget.All,"startPrint"); break;
                 case "Cancel Print?": SendCustomNetworkEvent(NetworkEventTarget.All,"printFinished"); _displayStatus(); break;
@@ -453,9 +434,6 @@ public class Ender3 : UdonSharpBehaviour
         textPage.color = foregroundColor;
     }
     private void resetPrinter(){
-        if (demoMode) {
-            return;
-        }
         isPrinting = false;
         targetHotendTemperature = 0;
         targetBedTemperature = 0;
@@ -474,14 +452,9 @@ public class Ender3 : UdonSharpBehaviour
         extrudeCheck = false;
         lcdMessage = versionInfo;
         totalVertices = 0;
-        if (!demoMode){
-            RequestSerialization();
-        }
+        RequestSerialization();
     }
     private void cleanupMesh(){
-        if (demoMode){
-            return;
-        }
         totalVertices = 0;
         trailRenderer.Clear();
         for (int i = 0; i < meshObjectCount; i++){
@@ -495,6 +468,25 @@ public class Ender3 : UdonSharpBehaviour
         var objectSync = (VRCObjectSync)_pickupObject.GetComponent(typeof(VRCObjectSync));
         objectSync.Respawn();
         _pickupObject.enabled = false;
+    }
+    private void generateBounds()
+    {
+        var originalPosition = currentPosition;
+        var originalNormal = normalPosition;
+        var originalBusy = isBusy;
+        
+        normalPosition = new Vector3(0, 0, 0);
+        extrudeCheck = false;
+        isBusy = true;
+        fastMove();
+        normalPosition = new Vector3(1, 1, 1);
+        extrudeCheck = true;
+        isBusy = true;
+        fastMove();
+
+        currentPosition = originalPosition;
+        normalPosition = originalNormal;
+        isBusy = originalBusy;
     }
     private void generateListMenuItems(){
         var fileiD = new int[100];
@@ -604,9 +596,7 @@ public class Ender3 : UdonSharpBehaviour
         _displayStatus();
         speaker.Play();
         lcdMessage = "SD Card Inserted";
-        if (!demoMode){
-            RequestSerialization();
-        }
+        RequestSerialization();
     }
     public void _up(){
 
@@ -763,14 +753,14 @@ public class Ender3 : UdonSharpBehaviour
                 }
             }
             else {
-                totalVertices = totalVertices + 2; //technically the shader adds 4 per vert 
+                totalVertices = totalVertices + 2; //technically the shader adds 4 per vert but the trail adds 2 verts per point.
                 trailRenderer.AddPosition(new Vector3(nozzle.position.x,nozzle.position.y - (20f * printerScale), nozzle.position.z));
             }
         }
-        else {
-            if (!demoMode){
-                generateMesh();
-            }
+        else
+        {
+            generateMesh();
+            generateBounds();
             addVertToTrail(isExtrude);
         }
     }
@@ -808,9 +798,7 @@ public class Ender3 : UdonSharpBehaviour
             case "Move Z Axis": printerCordPosition.z =  Mathf.Clamp(printerCordPosition.z + value,0,printerSizeInMM.z); normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, printerCordPosition.z + value); isBusy = true; break;
         }
         displayValue();
-        if(!demoMode){
-            RequestSerialization();
-        }
+        RequestSerialization();
     }
     public void _add1(){
         updateValue(1);
