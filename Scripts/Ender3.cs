@@ -7,26 +7,15 @@ using VRC.Udon;
 using VRC.SDK3.Components;
 using System.Globalization;
 using System.Diagnostics;
-using UdonToolkit;
 using VRC.Udon.Common.Interfaces;
 
-[CustomName("Ender VR")]
-[HelpMessage("A fully functional 3d printer in VRChat")]
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class Ender3 : UdonSharpBehaviour
 {
-    [Header("GCode")]
-    [HelpBox("Each SD Card has an ID. Set which files belong to each card. 0 is the default sd card loaded on the printer.")]
-    [ListView("GCode Files")]
-    public TextAsset[] GCode;
-    [ListView("GCode Files")]
-    public string[] ModelName;
-    [ListView("GCode Files")]
-    public int[] CardID;
-    [Tooltip("Slows down the print to more realistic speeds")]
-    [Range(50f,1000f)]
-    [UdonSynced]
-    public float feedrateLimiter = 100f; 
+    private GcodeFile[] files;
+    private TextAsset[] GCode;
+    private string[] ModelName;
+    private int[] CardID;
 
     [Header("Colors")]
     [ColorUsage(false)]
@@ -40,14 +29,20 @@ public class Ender3 : UdonSharpBehaviour
     private Color foregroundColor = new Color(255,255,255);
 
     [Header("Other Options")]
+    [Tooltip("Slows down the print to more realistic speeds")]
+    [Range(50f,1000f)]
+    [UdonSynced]
+    public float printerSpeed = 100f; 
     [Tooltip("Temperature in C")]
     [SerializeField]
+    [Range(10f,45f)]
     private float ambientTemperature = 20f;
     [Range(0,1)]
     [SerializeField]
     private float audioVolume = 1f;
     [Tooltip("Automatically print file 0 on sd card 0")]
-    public bool AutoStartPrint = false;
+    [SerializeField]
+    private bool AutoStartPrint = false;
 
     [Header("Printer Objects")]
     [Tooltip("Vertical Axis")]
@@ -72,9 +67,9 @@ public class Ender3 : UdonSharpBehaviour
     [UdonSynced]
     [HideInInspector]
     public int loadedSdCard = 0;
-    [HideInInspector]
-    public int gcodeFileSelected = 0;
-
+    private int gcodeFileSelected = 0;
+    [SerializeField]
+    private GameObject gcodeFilesParent;
     [UdonSynced] [HideInInspector] public int networkFileSelected = 0;
     private int gcodeFilePosition = 0;
     [UdonSynced]
@@ -84,15 +79,15 @@ public class Ender3 : UdonSharpBehaviour
     [Header("Axis Assignment")]
     [SerializeField]
     private Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f); 
-    [Popup("@popupOptions")]
+    //[Popup("@popupOptions")]
     [SerializeField]
-    public int xAxisMovementAxis;
-    [Popup("@popupOptions")]
+    public int xAxisMovementAxis = 0;
+    //[Popup("@popupOptions")]
     [SerializeField]
-    public int yAxisMovementAxis;
+    public int yAxisMovementAxis = 2;
     [SerializeField]
-    [Popup("@popupOptions")]
-    public int zAxisMovementAxis;
+    //[Popup("@popupOptions")]
+    public int zAxisMovementAxis = 1;
     [Tooltip("The max position for each axis. How far should each axis move")]
     [SerializeField]
     private Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
@@ -143,7 +138,7 @@ public class Ender3 : UdonSharpBehaviour
     private  AudioSource fanAudio;
     [SerializeField]
     private AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
-    const string versionInfo = "V1.2 by CodeL1417";
+    private const string versionInfo = "V1.2 by CodeL1417";
     private float printerScale;
     private string[] options;
     //Where does the top of the 4 displayed options begin
@@ -166,7 +161,26 @@ public class Ender3 : UdonSharpBehaviour
         printFinished();
         startPrint();
     }
-    void Start(){
+    void Start()
+    {
+        //Load files
+        files = gcodeFilesParent.GetComponentsInChildren<GcodeFile>();
+        ModelName = new string[files.Length];
+        for (int i = 0; i < files.Length; i++)
+        {
+            ModelName[i] = files[i].name;
+        }
+        GCode = new TextAsset[files.Length];
+        for (int i = 0; i < files.Length; i++)
+        {
+            GCode[i] = files[i].file;
+        }
+        CardID = new int[files.Length];
+        for (int i = 0; i < files.Length; i++)
+        {
+            CardID[i] = files[i].sdCard;
+        }
+
         printerScale = transform.localScale.x;
         normalPosition = new Vector3(0.5f,0.5f,0.3f);
         currentPosition = new Vector3(0.5f,0.5f,0.3f);
@@ -799,7 +813,7 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void displayValue(){
         switch (TextPageTitle.text){
-            case "Speed": textValue.text = Convert.ToString(feedrateLimiter) + "%"; return;
+            case "Speed": textValue.text = Convert.ToString(printerSpeed) + "%"; return;
             case "Audio Volume": textValue.text = Convert.ToString(audioVolume * 100) + "%"; break;
             case "Hotend Temp": textValue.text = Convert.ToString(targetHotendTemperature) + "°C"; return;
             case "Bed Temp": textValue.text = Convert.ToString(targetBedTemperature) + "°C"; return;
@@ -812,7 +826,7 @@ public class Ender3 : UdonSharpBehaviour
     private void updateValue(int value) {
         speaker.Play();
         switch (TextPageTitle.text){
-            case "Speed": feedrateLimiter = Mathf.Clamp(feedrateLimiter + value,50f,1000f);break;
+            case "Speed": printerSpeed = Mathf.Clamp(printerSpeed + value,50f,1000f);break;
             case "Audio Volume": audioVolume = Mathf.Clamp(audioVolume + (value * 0.01f) ,0f,1f); updateAudioVolume(); break;
             case "Hotend Temp": targetHotendTemperature = Mathf.Clamp(targetHotendTemperature + value,0,260);break;
             case "Bed Temp": targetBedTemperature = Mathf.Clamp(targetBedTemperature + value,0,110);break;
@@ -901,14 +915,14 @@ public class Ender3 : UdonSharpBehaviour
     }
     private void heaters(){
         //ambient cooldown
-        currentBedTemperature =  Mathf.MoveTowards(currentBedTemperature,ambientTemperature, 0.1f * Time.deltaTime * (feedrateLimiter / 100));
-        currentHotendTemperature =  Mathf.MoveTowards(currentHotendTemperature,ambientTemperature, 0.5f * Time.deltaTime * (feedrateLimiter / 100));
+        currentBedTemperature =  Mathf.MoveTowards(currentBedTemperature,ambientTemperature, 0.1f * Time.deltaTime * (printerSpeed / 100));
+        currentHotendTemperature =  Mathf.MoveTowards(currentHotendTemperature,ambientTemperature, 0.5f * Time.deltaTime * (printerSpeed / 100));
         
         if (targetBedTemperature > ambientTemperature){
-            currentBedTemperature = Mathf.MoveTowards(currentBedTemperature,targetBedTemperature,0.5f * Time.deltaTime * (feedrateLimiter / 100));
+            currentBedTemperature = Mathf.MoveTowards(currentBedTemperature,targetBedTemperature,0.5f * Time.deltaTime * (printerSpeed / 100));
         }
         if (targetHotendTemperature > ambientTemperature){
-            currentHotendTemperature = Mathf.MoveTowards(currentHotendTemperature,targetHotendTemperature, 2f * Time.deltaTime * (feedrateLimiter / 100));
+            currentHotendTemperature = Mathf.MoveTowards(currentHotendTemperature,targetHotendTemperature, 2f * Time.deltaTime * (printerSpeed / 100));
         }
         if (Mathf.Approximately(currentBedTemperature,targetBedTemperature)){
             if (isWaitingBed){
@@ -1018,7 +1032,7 @@ public class Ender3 : UdonSharpBehaviour
                     }
                     break;
                 case 'F':
-                    feedRate = Convert.ToSingle(currentGcodeLineSection,System.Globalization.CultureInfo.InvariantCulture)  * (feedrateLimiter * 0.0001f);
+                    feedRate = Convert.ToSingle(currentGcodeLineSection,System.Globalization.CultureInfo.InvariantCulture)  * (printerSpeed * 0.0001f);
                     break;
                 case 'E':
                     extrudeCheck = true;

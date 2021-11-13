@@ -2,7 +2,7 @@
 using UdonSharp;
 using UnityEngine;
 
-[UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
+[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 [RequireComponent(typeof(BoxCollider))]
 public class sdCard : UdonSharpBehaviour
 {
