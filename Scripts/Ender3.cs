@@ -23,74 +23,79 @@ public class Ender3 : UdonSharpBehaviour
     public string[] ModelName;
     [ListView("GCode Files")]
     public int[] CardID;
-    [SectionHeader("Speed")]
-    [HideLabel]
     [Tooltip("Slows down the print to more realistic speeds")]
     [Range(50f,1000f)]
     [UdonSynced]
     public float feedrateLimiter = 100f; 
 
-    [SectionHeader("Colors")]
+    [Header("Colors")]
     [ColorUsage(false)]
-    public Color plasticColor = new Color(255,0,0);
-    [Horizontal("Display Colors", true)]
+    [SerializeField]
+    private Color plasticColor = new Color(255,0,0);
     [ColorUsage(false)]
-    public Color backgroundColor = new Color(0,0,255);
-    [Horizontal("Display Colors", false)]
+    [SerializeField]
+    private Color backgroundColor = new Color(0,0,255);
     [ColorUsage(false)]
-    public Color foregroundColor = new Color(255,255,255);
+    [SerializeField]
+    private Color foregroundColor = new Color(255,255,255);
 
-    [SectionHeader("Other Options")]
+    [Header("Other Options")]
     [Tooltip("Temperature in C")]
-    public float ambientTemperature = 20f;
+    [SerializeField]
+    private float ambientTemperature = 20f;
     [Range(0,1)]
-    public float audioVolume = 1f;
+    [SerializeField]
+    private float audioVolume = 1f;
     [Tooltip("Automatically print file 0 on sd card 0")]
     public bool AutoStartPrint = false;
 
-    [FoldoutGroup("Objects")]
-    [SectionHeader("Printer Objects")]
+    [Header("Printer Objects")]
     [Tooltip("Vertical Axis")]
-    public Transform ZAxis;
-    [FoldoutGroup("Objects")]
+    [SerializeField]
+    private Transform ZAxis;
     [Tooltip("Forword/Back Axis")]
-    public Transform YAxis;
-    [FoldoutGroup("Objects")]
+    [SerializeField]
+    private Transform YAxis;
     [Tooltip("Left/Right Axis")]
-    public Transform XAxis;
-    [FoldoutGroup("Objects")]
-    public Animator printFan;
-    [FoldoutGroup("Objects")]
+    [SerializeField]
+    private Transform XAxis;
+    [SerializeField]
+    private Animator printFan;
     [Tooltip("The point the hotend nozzle is located")]
-    public Transform nozzle;
-    [FoldoutGroup("Objects")]
-    public TrailRenderer trailRenderer;
-    [FoldoutGroup("Objects")]
-    public GameObject _emptyMeshFilter;
-    [FoldoutGroup("Objects")]
-    public BoxCollider _pickupObject;
+    [SerializeField]
+    private Transform nozzle;
+    [SerializeField]
+    private TrailRenderer trailRenderer;
+    [SerializeField]
+    private BoxCollider _pickupObject;
     private string[] gcodeFile = new string[1];
     [UdonSynced]
     [HideInInspector]
     public int loadedSdCard = 0;
-    [UdonSynced]
     [HideInInspector]
     public int gcodeFileSelected = 0;
+
+    [UdonSynced] [HideInInspector] public int networkFileSelected = 0;
     private int gcodeFilePosition = 0;
     [UdonSynced]
     [HideInInspector]
     public int networkFilePosition = 0;
     [NonSerialized] public string[] popupOptions = {"X Axis", "Y Axis", "Z Axis"};
-    [SectionHeader("Axis Assignment")]
-    public Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f); 
+    [Header("Axis Assignment")]
+    [SerializeField]
+    private Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f); 
     [Popup("@popupOptions")]
+    [SerializeField]
     public int xAxisMovementAxis;
     [Popup("@popupOptions")]
+    [SerializeField]
     public int yAxisMovementAxis;
+    [SerializeField]
     [Popup("@popupOptions")]
     public int zAxisMovementAxis;
-    [HelpBox("The max position for each axis. How far should each axis move")]
-    public Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
+    [Tooltip("The max position for each axis. How far should each axis move")]
+    [SerializeField]
+    private Vector3 maxPosition = new Vector3(0.2f,-0.2f,-0.24f);
     private Vector3 printerSizeInMM = new Vector3(235,235,250);
     private Vector3 normalPosition;
     private Vector3 calcVelocity, currentPosition, printerCordPosition;
@@ -109,36 +114,36 @@ public class Ender3 : UdonSharpBehaviour
     private bool isMeshHidden = false;
     private float fanSpeed;
     private float feedRate, currentBedTemperature, targetBedTemperature,currentHotendTemperature, targetHotendTemperature;
-    [FoldoutGroup("Objects")]
-    [SectionHeader("Display")]
-    public GameObject statusPage;
-    [FoldoutGroup("Objects")]
-    public Text textPage, textValue, textAdd1, textAdd10, textAdd25, textRemove1, textRemove10, textRemove25, textOption1, textOption2, textOption3, textOption4, textStatus, textHotendTargetTemperature, textHotendCurrentTemperature, textBedCurrentTemperature, textBedTargetTemperature, textFanSpeed, textFeedRate, textPrinterName, textXPos, textYPos, textZPos, textTime,TextPageTitle, textCancel, TextConfirmation;
-    [FoldoutGroup("Objects")]
-    public Slider textPrintProgress;
-    [FoldoutGroup("Objects")]
-    public Image imageUp, imageDown, imageGcodeConfirmation, imageHotend, imageBed, ImageFan, imageBackground, imageMiddleBar, imageProgressBar, imageProgressBarFill, imageBackButton, imageConfirmationButton, imageCancelButton, imageSD;
+    [Header("Display")]
+    [SerializeField]
+    private GameObject statusPage;
+    [SerializeField]
+    private Text textPage, textValue, textAdd1, textAdd10, textAdd25, textRemove1, textRemove10, textRemove25, textOption1, textOption2, textOption3, textOption4, textStatus, textHotendTargetTemperature, textHotendCurrentTemperature, textBedCurrentTemperature, textBedTargetTemperature, textFanSpeed, textFeedRate, textPrinterName, textXPos, textYPos, textZPos, textTime,TextPageTitle, textCancel, TextConfirmation;
+    
+    [SerializeField]
+    private Slider textPrintProgress;
+    [SerializeField]
+    private Image imageUp, imageDown, imageGcodeConfirmation, imageHotend, imageBed, ImageFan, imageBackground, imageMiddleBar, imageProgressBar, imageProgressBarFill, imageBackButton, imageConfirmationButton, imageCancelButton, imageSD;
     private float timeMin;
-    [FoldoutGroup("Objects")]
-    public InputField gcodeInput;
-    [HideInInspector]
-    public float printStartTime;
-    private MeshFilter[] meshObjects = new MeshFilter[1000];
-    private int meshObjectCount = 0;
+    [SerializeField]
+    private InputField gcodeInput;
+    private float printStartTime;
+    //private MeshFilter[] meshObjects = new MeshFilter[1000];
+    //private int meshObjectCount = 0;
     private string[] previousPage = new string[10];
     private int pageDepth = 0;
     private string lcdMessage = "";
     private bool extrudeCheck = false;
     private Stopwatch stopWatch = new Stopwatch();
-    [FoldoutGroup("Objects")]
-    public Material lineMaterial;
-    private float catchUpTimeout = 5000f;
-    [FoldoutGroup("Objects")]
-    [SectionHeader("Audio")]
-    public  AudioSource fanAudio;
-    [FoldoutGroup("Objects")]
-    public AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
-    const string versionInfo = "V1.1 by CodeL1417";
+    [SerializeField]
+    private Material lineMaterial;
+    private float catchUpTimeout = 20f;
+    [Header("Audio")]
+    [SerializeField]
+    private  AudioSource fanAudio;
+    [SerializeField]
+    private AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
+    const string versionInfo = "V1.2 by CodeL1417";
     private float printerScale;
     private string[] options;
     //Where does the top of the 4 displayed options begin
@@ -147,8 +152,20 @@ public class Ender3 : UdonSharpBehaviour
     private bool lastSyncSuccessful = true;
     private int totalVertices = 0;
     private bool isRelativeMovement = false;
-    public float trailOffset = 0f;
+    [SerializeField]
+    private float trailOffset = 0f;
+    [Header("Mesh")]
+    public MeshFilter meshFilter;
 
+    private bool isFirstTime = true; // for stopping initial beep
+    public override void OnDeserialization()
+    {
+        //If the person joins late make sure the correct file is loaded
+        if (networkFileSelected == gcodeFileSelected) return;
+        gcodeFileSelected = networkFileSelected;
+        printFinished();
+        startPrint();
+    }
     void Start(){
         printerScale = transform.localScale.x;
         normalPosition = new Vector3(0.5f,0.5f,0.3f);
@@ -183,17 +200,12 @@ public class Ender3 : UdonSharpBehaviour
         isManualProgress = false;
         extrudeCheck = false;
         lcdMessage = "Finished";
-            generateMesh();
-            for (int i = 0; i < meshObjectCount; i++){
-                if (Utilities.IsValid(meshObjects[i])){
-                    meshObjects[i].transform.SetParent(_pickupObject.transform);
-                }
-            }
-
-            _pickupObject.enabled = true;
+        generateMesh(); 
+        meshFilter.transform.SetParent(_pickupObject.transform);
+        _pickupObject.enabled = true;
     }
     private void reSync(){
-        var gap = networkFilePosition - gcodeFilePosition;
+        int gap = networkFilePosition - gcodeFilePosition;
         if (gap > 500){
             isPrinting = true;
             stopWatch.Start();
@@ -214,7 +226,6 @@ public class Ender3 : UdonSharpBehaviour
                     break;
                 }
             }
-        catchUpTimeout = 20;
         if (gap < 500) {
             lcdMessage = versionInfo;
         }
@@ -225,17 +236,11 @@ public class Ender3 : UdonSharpBehaviour
     private void _ToggleMesh(){
         speaker.Play();
         isMeshHidden = !isMeshHidden;
-        for (int i = 0; i < meshObjectCount; i++){
-            if (Utilities.IsValid(meshObjects[i])){
-                meshObjects[i].gameObject.SetActive(!isMeshHidden);
-            }
-        }    
-    }
-    void Update() {
-        reSync();
+        meshFilter.gameObject.SetActive(!isMeshHidden);
     }
     void FixedUpdate()
     {
+        reSync();
         heaters();
         move();
         motorSounds();
@@ -247,7 +252,7 @@ public class Ender3 : UdonSharpBehaviour
                         gcodeFilePosition++;
                     }
                     else {
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "printFinished");
+                        printFinished();
                     }
                 }
             }
@@ -268,7 +273,9 @@ public class Ender3 : UdonSharpBehaviour
             display();
         }
     }
-    public void startPrint(){
+    public void startPrint()
+    {
+        networkFileSelected = gcodeFileSelected;
         readFile(GCode[gcodeFileSelected]);
         isPrinting = true;
         isPaused = false;
@@ -302,7 +309,13 @@ public class Ender3 : UdonSharpBehaviour
         textOption4.gameObject.SetActive(false);
         imageUp.gameObject.SetActive(false);
         imageDown.gameObject.SetActive(false);
-        speaker.Play();
+        if (isFirstTime){
+            isFirstTime = false;
+        }
+        else
+        {
+            speaker.Play();
+        }
         textAdd1.gameObject.SetActive(false);
         textAdd10.gameObject.SetActive(false);
         textAdd25.gameObject.SetActive(false);
@@ -351,7 +364,7 @@ public class Ender3 : UdonSharpBehaviour
             pageDepth = 0;
             return;
         }
-        var previous = previousPage[pageDepth - 2];
+        string previous = previousPage[pageDepth - 2];
         pageDepth = pageDepth - 2;
         switch (previous){
             case "Gcode Input":
@@ -360,7 +373,6 @@ public class Ender3 : UdonSharpBehaviour
             case "Main Menu":
             case "Debug":
             case "Files": _displayListMenu(previous); break;
-            default: break;
         }
     }
     private void addPage(string page){
@@ -433,7 +445,7 @@ public class Ender3 : UdonSharpBehaviour
         textValue.color = foregroundColor;
         textPage.color = foregroundColor;
     }
-    private void resetPrinter(){
+    public void resetPrinter(){
         isPrinting = false;
         targetHotendTemperature = 0;
         targetBedTemperature = 0;
@@ -457,23 +469,21 @@ public class Ender3 : UdonSharpBehaviour
     private void cleanupMesh(){
         totalVertices = 0;
         trailRenderer.Clear();
-        for (int i = 0; i < meshObjectCount; i++){
-            if (Utilities.IsValid(meshObjects[i])){
-                UnityEngine.Object.Destroy(meshObjects[i]);
-            }
-        }
+        
+        meshFilter.mesh.Clear();
+        
         //force drop to return pickup to start position
-        var pickup = (VRCPickup)_pickupObject.GetComponent(typeof(VRCPickup));
+        VRCPickup pickup = (VRCPickup)_pickupObject.GetComponent(typeof(VRCPickup));
         pickup.Drop();
-        var objectSync = (VRCObjectSync)_pickupObject.GetComponent(typeof(VRCObjectSync));
+        VRCObjectSync objectSync = (VRCObjectSync)_pickupObject.GetComponent(typeof(VRCObjectSync));
         objectSync.Respawn();
         _pickupObject.enabled = false;
     }
     private void generateBounds()
     {
-        var originalPosition = currentPosition;
-        var originalNormal = normalPosition;
-        var originalBusy = isBusy;
+        Vector3 originalPosition = currentPosition;
+        Vector3 originalNormal = normalPosition;
+        bool originalBusy = isBusy;
         
         normalPosition = new Vector3(0, 0, 0);
         extrudeCheck = false;
@@ -489,9 +499,9 @@ public class Ender3 : UdonSharpBehaviour
         isBusy = originalBusy;
     }
     private void generateListMenuItems(){
-        var fileiD = new int[100];
-        var fileLength = 0;
-        var pageTitle = TextPageTitle.text;
+        int[] fileiD = new int[100];
+        int fileLength = 0;
+        string pageTitle = TextPageTitle.text;
         if (pageTitle == "Files") {
             for (int i = 0; i < GCode.Length; i++){
                 if (CardID[i] == loadedSdCard) {
@@ -664,7 +674,7 @@ public class Ender3 : UdonSharpBehaviour
         listMenuSelection(3);
     }
     private void motorSounds(){
-        var absVelocity = new Vector3(Mathf.Abs(calcVelocity.x),Mathf.Abs(calcVelocity.y),Mathf.Abs(calcVelocity.z));
+        Vector3 absVelocity = new Vector3(Mathf.Abs(calcVelocity.x),Mathf.Abs(calcVelocity.y),Mathf.Abs(calcVelocity.z));
         xMotorAudio.pitch = Mathf.Clamp(0.15f,0f,absVelocity.x);
         yMotorAudio.pitch = Mathf.Clamp(0.15f,0f,absVelocity.y);
         zMotorAudio.pitch = Mathf.Clamp(0.15f,0f,absVelocity.z);
@@ -677,10 +687,10 @@ public class Ender3 : UdonSharpBehaviour
         speaker.volume = audioVolume;
     }
     private String TimeStringGen(){
-        var timeElapsed = Time.time + printStartTime;
-        var minutes = Mathf.Floor(timeElapsed / 60f);
-        var hours = Mathf.Floor(minutes / 60);
-        var seconds = timeElapsed - (minutes * 60);
+        float timeElapsed = Time.time + printStartTime;
+        float minutes = Mathf.Floor(timeElapsed / 60f);
+        float hours = Mathf.Floor(minutes / 60);
+        float seconds = timeElapsed - (minutes * 60);
         if (!isPrinting){
             return "00:00";
         }
@@ -723,20 +733,20 @@ public class Ender3 : UdonSharpBehaviour
             case "Position": textPage.text = "PrintPos: " + printerCordPosition + "\nNormalPos: " + normalPosition + "\nCurrentPos: " + currentPosition + "\nVelocity: " + calcVelocity + "\nFeedRate: " + feedRate + "\nisRelativeG0: " + isRelativeMovement ; break;
             case "Status": textPage.text = "isPrinting: " + isPrinting + "\nisBusy: " + isBusy + "\nisPaused: " + isPaused + "\nisWaitingHotend: " + isWaitingHotend + "\nisWaitingBed: " + isWaitingBed + "\nisManualProgress: " + isManualProgress + "\nisExtrude: " + extrudeCheck; break;
             case "GCode": 
-                var gcodeNum = Mathf.Clamp(gcodeFilePosition - 1,0, gcodeFile.Length);
+                int gcodeNum = Mathf.Clamp(gcodeFilePosition - 1,0, gcodeFile.Length);
                 textPage.text = "FilePosition: " + gcodeFilePosition + "\nNetFilePosition: " + networkFilePosition + "\nSDCard: " + loadedSdCard + "\nFileLines: " + gcodeFile.Length + "\nFileID: " + gcodeFileSelected + "\n> " + gcodeFile[gcodeNum]; 
                 break;
-            case "Mesh": textPage.text = "Mesh Count: " + meshObjectCount + "\nTrail Size: " + trailRenderer.positionCount + "\nisMeshHidden: " + isMeshHidden + "\nTrailOffset: " + lineMaterial.GetVector("_PositionOffset") + "\nMesh vertices: " + totalVertices ;  break;
+            case "Mesh": textPage.text = "\nTrail Size: " + trailRenderer.positionCount + "\nisMeshHidden: " + isMeshHidden + "\nTrailOffset: " + lineMaterial.GetVector("_PositionOffset") + "\nMesh vertices: " + totalVertices ;  break;
             case "Network": textPage.text = "isClogged: " + Networking.IsClogged + "\nisInstanceOwner: " + Networking.IsInstanceOwner + "\nisMaster: " + Networking.IsMaster + "\nisNetworkSettled: " + Networking.IsNetworkSettled + "\nisLastSyncSucessful: " + lastSyncSuccessful + "\nlastSyncBytes: " + lastSyncByteCount + "\nOwner: " + Networking.GetOwner(this.gameObject).displayName; break; //breaks in Unity
             case "Credits": textPage.text = "-Code by Codel1417, Lyuma \n-Shader by Lyuma, phi16, Xiexe\n-UdonSharp By Merlin\n-Models by Creality3D, Playingbadly"; break;
         }
     }
     private void addVertToTrail(bool isExtrude){
-        if (trailRenderer.positionCount < 10000){
+        if (trailRenderer.positionCount < 50){
             if (isExtrude){
                 //Cold Extrusion Prevention
                 if (currentHotendTemperature  > 160f){
-                    var nozzleLocal = transform.InverseTransformPoint(nozzle.position);
+                    Vector3 nozzleLocal = transform.InverseTransformPoint(nozzle.position);
                     Vector3 point = Vector3.zero;
                     switch (yAxisMovementAxis){
                         case 0: point = new Vector3(nozzleLocal.x, nozzleLocal.y, -Mathf.Lerp(minPosition.y ,maxPosition.y, currentPosition.y)); break;
@@ -760,18 +770,32 @@ public class Ender3 : UdonSharpBehaviour
         else
         {
             generateMesh();
-            generateBounds();
+            //generateBounds();
             addVertToTrail(isExtrude);
         }
     }
     private void generateMesh(){
-            var mesh = new Mesh();
+            Mesh mesh = new Mesh();
+            CombineInstance[] combine = new CombineInstance[2];
+            Mesh bigMesh = meshFilter.mesh;
             trailRenderer.BakeMesh(mesh);
-            meshObjects[meshObjectCount] = VRCInstantiate(_emptyMeshFilter).GetComponent<MeshFilter>();
-            meshObjects[meshObjectCount].mesh = mesh;
-            meshObjects[meshObjectCount].gameObject.SetActive(!isMeshHidden);
-            trailRenderer.Clear();
-            meshObjectCount++;
+            if (bigMesh == null)
+            {
+                meshFilter.mesh = mesh;
+            }
+            combine[0].mesh = bigMesh;
+            //combine[0].transform = Matrix4x4.Translate(trailRenderer.transform.position);
+            combine[1].mesh = mesh;
+            //combine[1].transform = Matrix4x4.Translate(meshFilter.transform.position);
+            Mesh comMesh = new Mesh();
+            comMesh.CombineMeshes(combine,true,false);
+            meshFilter.mesh = comMesh;
+            //meshObjects[meshObjectCount] = VRCInstantiate(_emptyMeshFilter).GetComponent<MeshFilter>();
+            //meshObjects[meshObjectCount].mesh = mesh;
+            //meshObjects[meshObjectCount].gameObject.SetActive(!isMeshHidden);
+            trailRenderer.Clear();            
+            meshFilter.transform.position = Vector3.zero;
+            //meshObjectCount++;
     }
     private void displayValue(){
         switch (TextPageTitle.text){
@@ -819,7 +843,7 @@ public class Ender3 : UdonSharpBehaviour
         updateValue(-25);
     }
     private void move(){
-        var previousPosition = currentPosition;
+        Vector3 previousPosition = currentPosition;
         currentPosition.x =  Mathf.SmoothDamp(currentPosition.x, normalPosition.x, ref velocity.x, 0f, Mathf.Clamp(feedRate,0,500));
         currentPosition.y =  Mathf.SmoothDamp(currentPosition.y, normalPosition.y, ref velocity.z, 0f, Mathf.Clamp(feedRate,0,500));
         currentPosition.z =  Mathf.SmoothDamp(currentPosition.z, normalPosition.z, ref velocity.z, 0f, Mathf.Clamp(feedRate,0,5));
@@ -912,7 +936,7 @@ public class Ender3 : UdonSharpBehaviour
         if (gcode.Contains(";")){         //strip comments from gcode line
             gcode = gcode.Substring(0, gcode.IndexOf(';') - 1);
         }
-        var words = gcode.Split(' ');
+        string[] words = gcode.Split(' ');
         if (words.Length == 0){ //if empty line
             return;
         }
@@ -958,7 +982,7 @@ public class Ender3 : UdonSharpBehaviour
             else continue;
             switch (words[i][0]){
                 case 'X':
-                    var value = Convert.ToSingle(currentGcodeLineSection);
+                    float value = Convert.ToSingle(currentGcodeLineSection);
                     if (isRelativeMovement){
                         printerCordPosition.x = Mathf.Clamp(printerCordPosition.x + value, 0f, printerSizeInMM.x);
                         normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, printerCordPosition.x);
@@ -970,7 +994,7 @@ public class Ender3 : UdonSharpBehaviour
 
                     break;
                 case 'Y':
-                    var value1 = Convert.ToSingle(currentGcodeLineSection);
+                    float value1 = Convert.ToSingle(currentGcodeLineSection);
                     if (isRelativeMovement){
                         printerCordPosition.y = Mathf.Clamp(printerCordPosition.y + value1, 0f, printerSizeInMM.y);
                         normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y,printerCordPosition.y);
@@ -982,7 +1006,7 @@ public class Ender3 : UdonSharpBehaviour
                     }
                     break;
                 case 'Z':
-                    var value2 = Convert.ToSingle(currentGcodeLineSection);
+                    float value2 = Convert.ToSingle(currentGcodeLineSection);
                     if (isRelativeMovement){
                         printerCordPosition.z = Mathf.Clamp(printerCordPosition.z + value2, 0f, printerSizeInMM.z);
                         normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z,printerCordPosition.z);
@@ -1052,7 +1076,7 @@ public class Ender3 : UdonSharpBehaviour
             else continue;
             switch (words[i][0]){
                 case 'S':
-                    var speed = Mathf.Clamp(Convert.ToSingle(currentGcodeLineSection,System.Globalization.CultureInfo.InvariantCulture),0f,255f);
+                    float speed = Mathf.Clamp(Convert.ToSingle(currentGcodeLineSection,System.Globalization.CultureInfo.InvariantCulture),0f,255f);
                     fanAudio.volume = (Mathf.InverseLerp(0,512,speed)) * audioVolume;
                     printFan.speed = speed;
                     fanSpeed = speed;

@@ -119,5 +119,5 @@ Material:
     - _Color: {r: 255, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _OcclusionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _PositionOffset: {r: 0, g: 0, b: 0.017973915, a: 0}
+    - _PositionOffset: {r: 0, g: 0, b: -0.12600593, a: 0}
     - _SubsurfaceScatteringColor: {r: 0, g: 0, b: 0, a: 1}
