@@ -1,31 +1,27 @@
 # VRChat Ender 3 Udon 3D Printer
 
-![Discord](https://img.shields.io/discord/545567251575865365?label=Discord&style=for-the-badge)
-
 This is a functional 3d printer in VRChat which prints real [Marlin](https://marlinfw.org/docs/gcode/G000-G001.html) gcode files. Print progress is synced over the network.
 
 ## Requirements
 
-* VRChat SDK 3 World
 * [UdonSharp](https://github.com/MerlinVR/UdonSharp) by Merlin
-* [UdonToolkit](https://github.com/orels1/UdonToolkit) by orels1
 
 ## How to use
 
-1) Import the project into your Unity Project
-2) Place the prefab in your world
-3) Change the file extention of your '.gcode file to '.txt'
-    * You may need to Check 'Show File Extentions' in windows explorer.
-4) In the Ender 3 VRC gameobject assign the 'Gcode Text File' variable to your custom gcode '.txt' file.
+1) Import the project into your Unity Project.
+2) Place the prefab in your world.
+3) Change the file extension of your '.gcode file to '.txt'.
+    * You may need to Check 'Show File Extensions' in windows explorer.
+4) Duplicate a GameObject under ``Ender_3_VRC/GCode Files`` and set its name to your File Name.
+5) Set the ``File`` variable to your GCode TextAsset '.txt'.
 
-
-Compatable Gcode can be generated in any Marlin compatible slicer. Cura with the Ender 3 profile works great.
+Compatible GCode can be generated in any Marlin compatible slicer. Ultimaker Cura with the Ender 3 profile works great.
 
 ## What is GCode?
 
-Gcode is a text file that contains commands for a 3D printer to execute. these commands are simple. Go here, Set Temperature, Put plastic between two points.
+GCode is a text file that contains commands for a 3D printer to execute. these commands are simple. Go here, Set Temperature, Put plastic between two points.
 
-#### Example Gcode
+#### Example GCode
 ```
 M190 S65 ; Set Bed Temperature to 65C
 M109 S225 ; Set Hotend Temperature to 225C
@@ -56,7 +52,7 @@ G1 X0.4 Y20 Z0.3 F1500.0 E30 ; Draw the second line
 
 * Print Bed size is 235X 235Y 250Z.
 * Minimum extrusion temperature is 160C (Cold Extrusion Protection).
-* Incaple of filament preasure simulation.
+* Incapable of filament pressure simulation.
 * Supports are unnecessary as gravity is a relic of the past.
 * Please do not remove any credits given, Just append to the credits page.
 
