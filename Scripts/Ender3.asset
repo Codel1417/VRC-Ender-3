@@ -62,7 +62,7 @@ MonoBehaviour:
       Data: 4|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: GcodeFile[], Assembly-CSharp
+      Data: Codel1417.GcodeFile[], Assembly-CSharp
     - Name: 
       Entry: 8
       Data: 

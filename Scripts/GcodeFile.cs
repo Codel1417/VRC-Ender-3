@@ -1,12 +1,14 @@
 ﻿
 using UdonSharp;
 using UnityEngine;
-using UnityEngine.UI;
-using VRC.SDKBase;
-using VRC.Udon;
-[UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-public class GcodeFile : UdonSharpBehaviour
+
+namespace Codel1417
 {
-    public TextAsset file;
-    public int sdCard = 0;
+    [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+    public class GcodeFile : UdonSharpBehaviour
+    {
+        public TextAsset file;
+        public int sdCard = 0;
+    }
 }
+
