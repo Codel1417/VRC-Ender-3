@@ -85,7 +85,7 @@ Material:
     - _DebugNormal: 0
     - _DetailNormalMapScale: 1
     - _DisableEndpoint: 1
-    - _DisableUVScale: 0
+    - _DisableUVScale: 1
     - _DotMode: 0
     - _DstBlend: 0
     - _GlossMapScale: 1
@@ -119,5 +119,5 @@ Material:
     - _Color: {r: 255, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _OcclusionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _PositionOffset: {r: 0, g: 0, b: 0.016591579, a: 0}
+    - _PositionOffset: {r: 0, g: 0, b: 0.1182, a: 0}
     - _SubsurfaceScatteringColor: {r: 0, g: 0, b: 0, a: 1}

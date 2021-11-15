@@ -1,11 +1,12 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using System;
-using UdonSharp;
-using VRC.SDKBase;
-using VRC.SDK3.Components;
-using System.Globalization;
+﻿using System;
 using System.Diagnostics;
+using System.Globalization;
+using UdonSharp;
+using UnityEngine;
+using UnityEngine.UI;
+using VRC.SDK3.Components;
+using VRC.SDKBase;
+using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 
 namespace Codel1417
@@ -13,10 +14,10 @@ namespace Codel1417
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class Ender3 : UdonSharpBehaviour
     {
-        private GcodeFile[] files;
-        private TextAsset[] GCode;
-        private string[] ModelName;
-        private int[] CardID;
+        private GcodeFile[] _files;
+        private TextAsset[] _gCode;
+        private string[] _modelName;
+        private int[] _cardID;
 
         [Header("Colors")] [ColorUsage(false)] [SerializeField]
         private Color plasticColor = new Color(255, 0, 0);
@@ -36,16 +37,16 @@ namespace Codel1417
         [Range(0, 1)] [SerializeField] private float audioVolume = 1f;
 
         [Tooltip("Automatically print file 0 on sd card 0")] [SerializeField]
-        private bool AutoStartPrint = false;
+        private bool autoStartPrint;
 
         [Header("Printer Objects")] [Tooltip("Vertical Axis")] [SerializeField]
-        private Transform ZAxis;
+        private Transform zAxis;
 
         [Tooltip("Forword/Back Axis")] [SerializeField]
-        private Transform YAxis;
+        private Transform yAxis;
 
         [Tooltip("Left/Right Axis")] [SerializeField]
-        private Transform XAxis;
+        private Transform xAxis;
 
         [SerializeField] private Animator printFan;
 
@@ -53,21 +54,21 @@ namespace Codel1417
         private Transform nozzle;
 
         [SerializeField] private TrailRenderer trailRenderer;
-        [SerializeField] private BoxCollider _pickupObject;
-        private string[] gcodeFile = new string[1];
-        [UdonSynced] [HideInInspector] public int loadedSdCard = 0;
-        private int gcodeFileSelected = 0;
+        [SerializeField] private BoxCollider pickupObject;
+        private string[] _gcodeFile = new string[1];
+        [UdonSynced] [HideInInspector] public int loadedSdCard;
+        private int _gcodeFileSelected;
         [SerializeField] private GameObject gcodeFilesParent;
-        [UdonSynced] [HideInInspector] public int networkFileSelected = 0;
-        private int gcodeFilePosition = 0;
-        [UdonSynced] [HideInInspector] public int networkFilePosition = 0;
-        [NonSerialized] public string[] popupOptions = { "X Axis", "Y Axis", "Z Axis" };
+        [UdonSynced] [HideInInspector] public int networkFileSelected;
+        private int _gcodeFilePosition;
+        [UdonSynced] [HideInInspector] public int networkFilePosition;
+        [NonSerialized] public string[] PopupOptions = { "X Axis", "Y Axis", "Z Axis" };
 
         [Header("Axis Assignment")] [SerializeField]
         private Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f);
 
         //[Popup("@popupOptions")]
-        [SerializeField] public int xAxisMovementAxis = 0;
+        [SerializeField] public int xAxisMovementAxis;
 
         //[Popup("@popupOptions")]
         [SerializeField] public int yAxisMovementAxis = 2;
@@ -80,24 +81,24 @@ namespace Codel1417
         private Vector3 maxPosition = new Vector3(0.2f, -0.2f, -0.24f);
 
         private Vector3 printerSizeInMM = new Vector3(235, 235, 250);
-        private Vector3 normalPosition;
-        private Vector3 calcVelocity, currentPosition, printerCordPosition;
-        private Vector3 velocity;
-        private bool isBusy = false;
-        [UdonSynced] [HideInInspector] public bool isPrinting = false;
-        private bool isFileLoaded = false;
-        [UdonSynced] [HideInInspector] public bool isPaused = false;
-        private bool isWaitingHotend, isWaitingBed = false;
-        private bool isManualProgress = false;
-        private float printProgress = 0;
-        private bool isMeshHidden = false;
-        private float fanSpeed;
+        private Vector3 _normalPosition;
+        private Vector3 _calcVelocity, _currentPosition, _printerCordPosition;
+        private Vector3 _velocity;
+        private bool _isBusy;
+        [UdonSynced] [HideInInspector] public bool isPrinting;
+        private bool _isFileLoaded;
+        [UdonSynced] [HideInInspector] public bool isPaused;
+        private bool _isWaitingHotend, _isWaitingBed;
+        private bool _isManualProgress;
+        private float _printProgress;
+        private bool _isMeshHidden;
+        private float _fanSpeed;
 
-        private float feedRate,
-            currentBedTemperature,
-            targetBedTemperature,
-            currentHotendTemperature,
-            targetHotendTemperature;
+        private float _feedRate,
+            _currentBedTemperature,
+            _targetBedTemperature,
+            _currentHotendTemperature,
+            _targetHotendTemperature;
 
         [Header("Display")] [SerializeField] private GameObject statusPage;
 
@@ -125,9 +126,9 @@ namespace Codel1417
             textYPos,
             textZPos,
             textTime,
-            TextPageTitle,
+            textPageTitle,
             textCancel,
-            TextConfirmation;
+            textConfirmation;
 
         [SerializeField] private Slider textPrintProgress;
 
@@ -136,7 +137,7 @@ namespace Codel1417
             imageGcodeConfirmation,
             imageHotend,
             imageBed,
-            ImageFan,
+            imageFan,
             imageBackground,
             imageMiddleBar,
             imageProgressBar,
@@ -146,227 +147,282 @@ namespace Codel1417
             imageCancelButton,
             imageSD;
 
-        private float timeMin;
+        private float _timeMin;
         [SerializeField] private InputField gcodeInput;
 
-        private float printStartTime;
+        private float _printStartTime;
 
         //private MeshFilter[] meshObjects = new MeshFilter[1000];
         //private int meshObjectCount = 0;
         private string[] previousPage = new string[10];
-        private int pageDepth = 0;
-        private string lcdMessage = "";
-        private bool extrudeCheck = false;
-        private Stopwatch stopWatch = new Stopwatch();
+        private int _pageDepth;
+        private string _lcdMessage = "";
+        private bool _extrudeCheck;
+        private Stopwatch _stopWatch = new Stopwatch();
         [SerializeField] private Material lineMaterial;
         private float catchUpTimeout = 20f;
         [Header("Audio")] [SerializeField] private AudioSource fanAudio;
         [SerializeField] private AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
-        private const string versionInfo = "V1.2 by CodeL1417";
-        private float printerScale;
+        private const string VERSION_INFO = "V1.2 by CodeL1417";
+        private float _printerScale;
 
-        private string[] options;
+        private string[] _options;
 
         //Where does the top of the 4 displayed options begin
-        private int listPagePosition = 0;
-        private int lastSyncByteCount = 0;
-        private bool lastSyncSuccessful = true;
-        private int totalVertices = 0;
-        private bool isRelativeMovement = false;
-        [SerializeField] private float trailOffset = 0f;
+        private int _listPagePosition;
+        private int _lastSyncByteCount;
+        private bool _lastSyncSuccessful = true;
+        private int _totalVertices;
+        private bool _isRelativeMovement;
+        [SerializeField] private float trailOffset;
         [Header("Mesh")] public MeshFilter meshFilter;
 
-        private bool isFirstTime = true; // for stopping initial beep
-
+        private bool _isFirstTime = true; // for stopping initial beep
+        private VRCPickup _pickup;
+        private VRCObjectSync _objectSync;
+        
+        private Mesh _trailGeneratedMesh;
+        private CombineInstance[] _combine = new CombineInstance[2];
+        private Mesh _bigMesh;
+        private Mesh _combined;
         public override void OnDeserialization()
         {
             //If the person joins late make sure the correct file is loaded
-            if (networkFileSelected == gcodeFileSelected) return;
-            gcodeFileSelected = networkFileSelected;
-            printFinished();
-            startPrint();
+            if (networkFileSelected == _gcodeFileSelected) return;
+            _gcodeFileSelected = networkFileSelected;
+            PrintFinished();
+            StartPrint();
         }
 
-        void Start()
+        public void _VketStart()
         {
+            InitialStart();
+        }
+
+        private void Start()
+        {
+            _VketStart();
+        }
+
+        public void _VketOnBoothEnter()
+        {
+            _isMeshHidden = false;
+            meshFilter.gameObject.SetActive(!_isMeshHidden);
+        }
+
+        public void _VketOnBoothExit()
+        {
+            _isMeshHidden = true;
+            meshFilter.gameObject.SetActive(!_isMeshHidden);
+        }
+
+        private void InitialStart()
+        {       
+            _combined = new Mesh();
+            _trailGeneratedMesh = new Mesh();
+            _trailGeneratedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            _bigMesh = new Mesh();
+            _bigMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            meshFilter.mesh = _bigMesh;
+            _combine[0].mesh = _trailGeneratedMesh;
+            _combine[1].mesh = _bigMesh;
+
             //Load files
-            files = gcodeFilesParent.GetComponentsInChildren<GcodeFile>();
-            ModelName = new string[files.Length];
-            for (int i = 0; i < files.Length; i++)
+            _files = gcodeFilesParent.GetComponentsInChildren<GcodeFile>();
+            _modelName = new string[_files.Length];
+            for (int i = 0; i < _files.Length; i++)
             {
-                ModelName[i] = files[i].name;
+                _modelName[i] = _files[i].name;
             }
 
-            GCode = new TextAsset[files.Length];
-            for (int i = 0; i < files.Length; i++)
+            _gCode = new TextAsset[_files.Length];
+            for (int i = 0; i < _files.Length; i++)
             {
-                GCode[i] = files[i].file;
+                _gCode[i] = _files[i].file;
             }
 
-            CardID = new int[files.Length];
-            for (int i = 0; i < files.Length; i++)
+            _cardID = new int[_files.Length];
+            for (int i = 0; i < _files.Length; i++)
             {
-                CardID[i] = files[i].sdCard;
+                _cardID[i] = _files[i].sdCard;
             }
+            _pickup = (VRCPickup)pickupObject.GetComponent(typeof(VRCPickup));
+            _objectSync = (VRCObjectSync)pickupObject.GetComponent(typeof(VRCObjectSync));
 
-            printerScale = transform.localScale.x;
-            normalPosition = new Vector3(0.5f, 0.5f, 0.3f);
-            currentPosition = new Vector3(0.5f, 0.5f, 0.3f);
-            currentHotendTemperature = ambientTemperature;
-            currentBedTemperature = ambientTemperature;
-            move();
+            _printerScale = transform.localScale.x;
+            _normalPosition = new Vector3(0.5f, 0.5f, 0.3f);
+            _currentPosition = new Vector3(0.5f, 0.5f, 0.3f);
+            _currentHotendTemperature = ambientTemperature;
+            _currentBedTemperature = ambientTemperature;
+            meshFilter.transform.position = Vector3.zero;
+
+            Move();
             _displayStatus();
-            lineMaterial.SetFloat("_MaxSegmentLength", 0.1f * printerScale);
-            lineMaterial.SetFloat("_Width", 0.00035f * printerScale);
+            lineMaterial.SetFloat("_MaxSegmentLength", 0.1f * _printerScale);
+            lineMaterial.SetFloat("_Width", 0.00035f * _printerScale);
             M107(); //sets default fanspeed of 0
-            lcdMessage = versionInfo;
-            printerCordPosition.x = Mathf.Lerp(0f, printerSizeInMM.x, currentPosition.x);
-            printerCordPosition.y = Mathf.Lerp(0f, printerSizeInMM.y, currentPosition.y);
-            printerCordPosition.z = Mathf.Lerp(0f, printerSizeInMM.z, currentPosition.z);
-            updateAudioVolume();
-            isPrinting = AutoStartPrint;
-            readFile(GCode[0]); //load default file
+            _lcdMessage = VERSION_INFO;
+            _printerCordPosition.x = Mathf.Lerp(0f, printerSizeInMM.x, _currentPosition.x);
+            _printerCordPosition.y = Mathf.Lerp(0f, printerSizeInMM.y, _currentPosition.y);
+            _printerCordPosition.z = Mathf.Lerp(0f, printerSizeInMM.z, _currentPosition.z);
+            UpdateAudioVolume();
+            isPrinting = autoStartPrint;
+            ReadFile(_gCode[0]); //load default file
 
             //generateBounds();
         }
 
         public override void OnPreSerialization()
         {
-            if (Networking.IsOwner(this.gameObject))
+            if (Networking.IsOwner(gameObject))
             {
-                networkFilePosition = gcodeFilePosition;
+                networkFilePosition = _gcodeFilePosition;
             }
         }
 
-        public void printFinished()
+        public void PrintFinished()
         {
             isPrinting = false;
-            targetHotendTemperature = 0;
-            targetBedTemperature = 0;
+            _targetHotendTemperature = 0;
+            _targetBedTemperature = 0;
             M107();
-            isManualProgress = false;
-            extrudeCheck = false;
-            lcdMessage = "Finished";
-            generateMesh();
-            meshFilter.transform.SetParent(_pickupObject.transform);
-            _pickupObject.enabled = true;
+            _isManualProgress = false;
+            _extrudeCheck = false;
+            _lcdMessage = "Finished";
+            GenerateMesh();
+            meshFilter.transform.SetParent(pickupObject.transform);
+            pickupObject.enabled = true;
         }
 
-        private void reSync()
+        private int _networkSyncOwner;
+        private void ReSync()
         {
-            int gap = networkFilePosition - gcodeFilePosition;
-            if (gap > 500)
+            _networkSyncOwner = networkFilePosition - _gcodeFilePosition;
+            if (_networkSyncOwner > 500)
             {
                 isPrinting = true;
-                stopWatch.Start();
-                lcdMessage = "Syncing";
-                isWaitingBed = false;
-                isWaitingHotend = false;
-                currentBedTemperature = targetBedTemperature;
-                currentHotendTemperature = targetHotendTemperature;
-                while (gcodeFilePosition < networkFilePosition)
+                _stopWatch.Start();
+                _lcdMessage = "Syncing";
+                _isWaitingBed = false;
+                _isWaitingHotend = false;
+                _currentBedTemperature = _targetBedTemperature;
+                _currentHotendTemperature = _targetHotendTemperature;
+                while (_gcodeFilePosition < networkFilePosition)
                 {
-                    if (isBusy)
+                    if (_isBusy)
                     {
-                        fastMove();
+                        FastMove();
                     }
                     else
                     {
-                        parseGcode(gcodeFile[gcodeFilePosition]);
-                        gcodeFilePosition++;
+                        ParseGcode(_gcodeFile[_gcodeFilePosition]);
+                        _gcodeFilePosition++;
                     }
 
-                    if (stopWatch.ElapsedMilliseconds > catchUpTimeout)
+                    if (_stopWatch.ElapsedMilliseconds > catchUpTimeout)
                     {
                         break;
                     }
                 }
 
-                if (gap < 500)
+                if (_networkSyncOwner < 500)
                 {
-                    lcdMessage = versionInfo;
+                    _lcdMessage = VERSION_INFO;
                 }
 
-                stopWatch.Stop();
-                stopWatch.Reset();
+                _stopWatch.Stop();
+                _stopWatch.Reset();
             }
         }
 
         private void _ToggleMesh()
         {
             speaker.Play();
-            isMeshHidden = !isMeshHidden;
-            meshFilter.gameObject.SetActive(!isMeshHidden);
+            _isMeshHidden = !_isMeshHidden;
+            meshFilter.gameObject.SetActive(!_isMeshHidden);
         }
 
-        void FixedUpdate()
+        private void FixedUpdate()
         {
-            reSync();
-            heaters();
-            move();
-            motorSounds();
+            UpdateLoop();
+        }
+
+        public void _VketFixedUpdate()
+        {
+            UpdateLoop();
+        }
+
+        private void UpdateLoop()
+        {
+            ReSync();
+            Heaters();
+            Move();
+            MotorSounds();
             if (isPrinting)
             {
-                if (isFileLoaded)
+                if (_isFileLoaded)
                 {
-                    if (!isBusy && !isPaused && !isWaitingHotend && !isWaitingBed)
+                    if (!_isBusy && !isPaused && !_isWaitingHotend && !_isWaitingBed)
                     {
-                        if (gcodeFilePosition + 1 < gcodeFile.Length && isFileLoaded)
+                        if (_gcodeFilePosition + 1 < _gcodeFile.Length && _isFileLoaded)
                         {
-                            parseGcode(gcodeFile[gcodeFilePosition]);
-                            gcodeFilePosition++;
+                            ParseGcode(_gcodeFile[_gcodeFilePosition]);
+                            _gcodeFilePosition++;
+                        }
+                        else if (Vector3.Distance(Vector3.one, _currentPosition) < 0.001f)
+                        {
+                            PrintFinished();
                         }
                         else
                         {
-                            printFinished();
+                            _normalPosition = Vector3.one;
                         }
                     }
                 }
                 else
                 {
-                    SendCustomNetworkEvent(NetworkEventTarget.All, "startPrint");
+                    SendCustomNetworkEvent(NetworkEventTarget.All, "StartPrint");
                 }
             }
-
-            periodically();
+            Periodically();
         }
 
-        private void periodically()
+        private void Periodically()
         {
-            timeMin = timeMin + Time.fixedDeltaTime;
-            if (timeMin >= 1f)
+            _timeMin += Time.fixedDeltaTime;
+            if (_timeMin >= 1f)
             {
-                timeMin = timeMin - 1;
-                display();
+                _timeMin -= 1;
+                Display();
                 RequestSerialization(); //Manual Sync go burr
             }
-            else if (pageDepth != 0)
+            else if (_pageDepth != 0)
             {
-                display();
+                Display();
             }
         }
 
-        public void startPrint()
+        public void StartPrint()
         {
-            networkFileSelected = gcodeFileSelected;
-            readFile(GCode[gcodeFileSelected]);
+            networkFileSelected = _gcodeFileSelected;
+            ReadFile(_gCode[_gcodeFileSelected]);
             isPrinting = true;
             isPaused = false;
-            extrudeCheck = false;
-            lcdMessage = "Printing";
-            printStartTime = Time.time;
-            gcodeFilePosition = 0;
+            _extrudeCheck = false;
+            _lcdMessage = "Printing";
+            _printStartTime = Time.time;
+            _gcodeFilePosition = 0;
             networkFilePosition = 0;
-            cleanupMesh();
+            CleanupMesh();
             RequestSerialization();
         }
 
         //clears them display
-        private void resetDisplay()
+        private void ResetDisplay()
         {
-            updateColor();
+            UpdateColor();
             statusPage.SetActive(false);
-            TextPageTitle.gameObject.SetActive(false);
+            textPageTitle.gameObject.SetActive(false);
             imageBackButton.gameObject.SetActive(false);
             imageConfirmationButton.gameObject.SetActive(false);
             imageCancelButton.gameObject.SetActive(false);
@@ -376,7 +432,7 @@ namespace Codel1417
             textOption2.text = "";
             textOption3.text = "";
             textOption4.text = "";
-            TextPageTitle.text = "";
+            textPageTitle.text = "";
             textPage.text = "";
             textOption1.gameObject.SetActive(false);
             textOption2.gameObject.SetActive(false);
@@ -384,9 +440,9 @@ namespace Codel1417
             textOption4.gameObject.SetActive(false);
             imageUp.gameObject.SetActive(false);
             imageDown.gameObject.SetActive(false);
-            if (isFirstTime)
+            if (_isFirstTime)
             {
-                isFirstTime = false;
+                _isFirstTime = false;
             }
             else
             {
@@ -405,8 +461,8 @@ namespace Codel1417
 
         private void _displayStatus()
         {
-            resetDisplay();
-            pageDepth = 0;
+            ResetDisplay();
+            _pageDepth = 0;
             statusPage.SetActive(true);
         }
 
@@ -417,12 +473,12 @@ namespace Codel1417
 
         private void _displayGcodeInput()
         {
-            addPage("Gcode Input");
-            resetDisplay();
+            AddPage("Gcode Input");
+            ResetDisplay();
             gcodeInput.gameObject.SetActive(true);
             imageGcodeConfirmation.gameObject.SetActive(true);
-            TextPageTitle.gameObject.SetActive(true);
-            TextPageTitle.text = "Enter Gcode";
+            textPageTitle.gameObject.SetActive(true);
+            textPageTitle.text = "Enter Gcode";
             imageBackButton.gameObject.SetActive(true);
         }
 
@@ -430,27 +486,27 @@ namespace Codel1417
         {
             if (Networking.IsMaster)
             {
-                switch (TextPageTitle.text)
+                switch (textPageTitle.text)
                 {
                     case "Start Print?":
                         _displayStatus();
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "startPrint");
+                        SendCustomNetworkEvent(NetworkEventTarget.All, "StartPrint");
                         break;
                     case "Cancel Print?":
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "printFinished");
+                        SendCustomNetworkEvent(NetworkEventTarget.All, "PrintFinished");
                         _displayStatus();
                         break;
                     case "Reset Printer?":
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "resetPrinter");
+                        SendCustomNetworkEvent(NetworkEventTarget.All, "ResetPrinter");
                         _displayStatus();
                         _displayStatus();
                         break;
                     case "Enter Gcode":
                         _displayStatus();
-                        gcodeFile = gcodeInput.text.Split('\n');
+                        _gcodeFile = gcodeInput.text.Split('\n');
                         isPrinting = true;
-                        isFileLoaded = true;
-                        gcodeFilePosition = 0;
+                        _isFileLoaded = true;
+                        _gcodeFilePosition = 0;
                         networkFilePosition = 0;
                         break;
                     default:
@@ -467,18 +523,18 @@ namespace Codel1417
             _back();
         }
 
+        private string _previous;
         public void _back()
         {
-            if (pageDepth <= 1)
+            if (_pageDepth <= 1)
             {
                 _displayStatus();
-                pageDepth = 0;
+                _pageDepth = 0;
                 return;
             }
-
-            string previous = previousPage[pageDepth - 2];
-            pageDepth = pageDepth - 2;
-            switch (previous)
+            _pageDepth = _pageDepth - 2;
+            _previous = previousPage[_pageDepth];
+            switch (_previous)
             {
                 case "Gcode Input":
                 case "Printer Control":
@@ -486,22 +542,22 @@ namespace Codel1417
                 case "Main Menu":
                 case "Debug":
                 case "Files":
-                    _displayListMenu(previous);
+                    _displayListMenu(_previous);
                     break;
             }
         }
 
-        private void addPage(string page)
+        private void AddPage(string page)
         {
-            previousPage[pageDepth] = page;
-            pageDepth++;
+            previousPage[_pageDepth] = page;
+            _pageDepth++;
         }
 
-        private void displayValueOption(String title)
+        private void DisplayValueOption(String title)
         {
-            resetDisplay();
-            addPage(title);
-            TextPageTitle.text = title;
+            ResetDisplay();
+            AddPage(title);
+            textPageTitle.text = title;
             textAdd1.gameObject.SetActive(true);
             textAdd10.gameObject.SetActive(true);
             textAdd25.gameObject.SetActive(true);
@@ -509,23 +565,23 @@ namespace Codel1417
             textRemove10.gameObject.SetActive(true);
             textRemove25.gameObject.SetActive(true);
             textValue.gameObject.SetActive(true);
-            TextPageTitle.gameObject.SetActive(true);
+            textPageTitle.gameObject.SetActive(true);
             imageBackButton.gameObject.SetActive(true);
-            displayValue();
+            DisplayValue();
         }
 
         private void _displayConfirmation(String title)
         {
-            addPage(title);
-            resetDisplay();
-            TextPageTitle.gameObject.SetActive(true);
-            TextPageTitle.text = title;
+            AddPage(title);
+            ResetDisplay();
+            textPageTitle.gameObject.SetActive(true);
+            textPageTitle.text = title;
             imageBackButton.gameObject.SetActive(true);
             imageConfirmationButton.gameObject.SetActive(true);
             imageCancelButton.gameObject.SetActive(true);
         }
 
-        private void updateColor()
+        private void UpdateColor()
         {
             trailRenderer.sharedMaterial.color = plasticColor;
             textStatus.color = foregroundColor;
@@ -542,7 +598,7 @@ namespace Codel1417
             imageBackground.color = backgroundColor;
             imageBed.color = foregroundColor;
             imageHotend.color = foregroundColor;
-            ImageFan.color = foregroundColor;
+            imageFan.color = foregroundColor;
             imageMiddleBar.color = foregroundColor;
             textTime.color = foregroundColor;
             imageProgressBar.color = foregroundColor;
@@ -550,7 +606,7 @@ namespace Codel1417
             imageConfirmationButton.color = foregroundColor;
             imageGcodeConfirmation.color = foregroundColor;
             imageCancelButton.color = foregroundColor;
-            TextPageTitle.color = foregroundColor;
+            textPageTitle.color = foregroundColor;
             imageBackButton.color = foregroundColor;
             imageSD.color = foregroundColor;
             textOption1.color = foregroundColor;
@@ -567,102 +623,84 @@ namespace Codel1417
             textRemove25.color = foregroundColor;
             textValue.color = foregroundColor;
             textPage.color = foregroundColor;
+            textConfirmation.color = foregroundColor;
+            textCancel.color = foregroundColor;
         }
 
-        public void resetPrinter()
+        public void ResetPrinter()
         {
             isPrinting = false;
-            targetHotendTemperature = 0;
-            targetBedTemperature = 0;
+            _targetHotendTemperature = 0;
+            _targetBedTemperature = 0;
             M107();
-            isManualProgress = false;
-            gcodeFilePosition = 0;
+            _isManualProgress = false;
+            _gcodeFilePosition = 0;
             networkFilePosition = 0;
             _displayStatus();
-            gcodeFile = new string[0];
-            cleanupMesh();
+            _gcodeFile = new string[0];
+            CleanupMesh();
             isPaused = false;
-            isBusy = false;
-            isWaitingBed = false;
-            isWaitingHotend = false;
-            isFileLoaded = false;
-            extrudeCheck = false;
-            lcdMessage = versionInfo;
-            totalVertices = 0;
+            _isBusy = false;
+            _isWaitingBed = false;
+            _isWaitingHotend = false;
+            _isFileLoaded = false;
+            _extrudeCheck = false;
+            _lcdMessage = VERSION_INFO;
+            _totalVertices = 0;
             RequestSerialization();
         }
 
-        private void cleanupMesh()
+        private void CleanupMesh()
         {
-            totalVertices = 0;
+            _totalVertices = 0;
             trailRenderer.Clear();
 
             meshFilter.mesh.Clear();
 
             //force drop to return pickup to start position
-            VRCPickup pickup = (VRCPickup)_pickupObject.GetComponent(typeof(VRCPickup));
-            pickup.Drop();
-            VRCObjectSync objectSync = (VRCObjectSync)_pickupObject.GetComponent(typeof(VRCObjectSync));
-            objectSync.Respawn();
-            _pickupObject.enabled = false;
+            _pickup.Drop();
+            _objectSync.Respawn();
+            pickupObject.enabled = false;
         }
 
-        private void generateBounds()
+        private int[] _fileiD;
+        private int _fileLength;
+        private void GenerateListMenuItems()
         {
-            Vector3 originalPosition = currentPosition;
-            Vector3 originalNormal = normalPosition;
-            bool originalBusy = isBusy;
-
-            normalPosition = new Vector3(0, 0, 0);
-            extrudeCheck = false;
-            isBusy = true;
-            fastMove();
-            normalPosition = new Vector3(1, 1, 1);
-            extrudeCheck = true;
-            isBusy = true;
-            fastMove();
-
-            currentPosition = originalPosition;
-            normalPosition = originalNormal;
-            isBusy = originalBusy;
-        }
-
-        private void generateListMenuItems()
-        {
-            int[] fileiD = new int[100];
-            int fileLength = 0;
-            string pageTitle = TextPageTitle.text;
+            _fileiD = new int[100];
+            _fileLength = 0;
+            string pageTitle = textPageTitle.text;
             if (pageTitle == "Files")
             {
-                for (int i = 0; i < GCode.Length; i++)
+                for (int i = 0; i < _gCode.Length; i++)
                 {
-                    if (CardID[i] == loadedSdCard)
+                    if (_cardID[i] == loadedSdCard)
                     {
-                        fileiD[fileLength] = i;
-                        fileLength++;
+                        _fileiD[_fileLength] = i;
+                        _fileLength++;
                     }
                 }
 
-                options = new string[fileLength];
-                for (int i = 0; i < fileLength; i++)
+                _options = new string[_fileLength];
+                for (int i = 0; i < _fileLength; i++)
                 {
-                    options[i] = ModelName[fileiD[i]];
+                    _options[i] = _modelName[_fileiD[i]];
                 }
             }
             else if (pageTitle == "Options")
             {
-                options = new string[] { "Speed", "Audio Volume", "Toggle Mesh", "Reset Printer" };
+                _options = new[] { "Speed", "Audio Volume", "Toggle Mesh", "Reset Printer" };
             }
             else if (pageTitle == "Printer Control")
             {
                 //lock during print, provide different menu
                 if (isPrinting)
                 {
-                    options = new string[] { "Pause Print", "Cancel Print" };
+                    _options = new[] { "Pause Print", "Cancel Print" };
                 }
                 else
                 {
-                    options = new string[]
+                    _options = new[]
                     {
                         "Bed Temp", "Hotend Temp", "Fan Speed", "Cooldown", "Auto Home", "Move X Axis", "Move Y Axis",
                         "Move Z Axis"
@@ -671,45 +709,46 @@ namespace Codel1417
             }
             else if (pageTitle == "Main Menu")
             {
-                options = new string[] { "Printer Control", "SD Card", "Gcode Input", "Options", "Credits", "Debug" };
+                _options = new[] { "Printer Control", "SD Card", "Gcode Input", "Options", "Credits", "Debug" };
             }
             else if (pageTitle == "Debug")
             {
-                options = new string[] { "Position", "Status", "GCode", "Mesh", "Network" };
+                _options = new[] { "Position", "Status", "GCode", "Mesh", "Network" };
             }
         }
 
-        private void listMenuSelection(int id)
+        private string _selectedName;
+        private void ListMenuSelection(int id)
         {
-            string SelectedName = "";
+            _selectedName = "";
             switch (id)
             {
                 case 0:
-                    SelectedName = textOption1.text;
+                    _selectedName = textOption1.text;
                     break;
                 case 1:
-                    SelectedName = textOption2.text;
+                    _selectedName = textOption2.text;
                     break;
                 case 2:
-                    SelectedName = textOption3.text;
+                    _selectedName = textOption3.text;
                     break;
                 case 3:
-                    SelectedName = textOption4.text;
+                    _selectedName = textOption4.text;
                     break;
             }
 
-            if (SelectedName == "")
+            if (_selectedName == "")
             {
                 return;
             }
 
-            if (TextPageTitle.text == "Files")
+            if (textPageTitle.text == "Files")
             {
-                for (int i = 0; i < GCode.Length; i++)
+                for (int i = 0; i < _gCode.Length; i++)
                 {
-                    if (ModelName[i] == SelectedName)
+                    if (_modelName[i] == _selectedName)
                     {
-                        gcodeFileSelected = i;
+                        _gcodeFileSelected = i;
                         _displayConfirmation("Start Print?");
                         break;
                     }
@@ -717,7 +756,7 @@ namespace Codel1417
             }
             else
             {
-                switch (SelectedName)
+                switch (_selectedName)
                 {
                     case "Speed":
                     case "Audio Volume":
@@ -727,7 +766,7 @@ namespace Codel1417
                     case "Move X Axis":
                     case "Move Y Axis":
                     case "Move Z Axis":
-                        displayValueOption(SelectedName);
+                        DisplayValueOption(_selectedName);
                         break;
                     case "Plastic Color": //TODO: add color selection system.
                     case "Auto Home":
@@ -758,8 +797,8 @@ namespace Codel1417
                         break;
                     case "Cooldown":
                         speaker.Play();
-                        targetBedTemperature = 0;
-                        targetHotendTemperature = 0;
+                        _targetBedTemperature = 0;
+                        _targetHotendTemperature = 0;
                         _displayStatus();
                         break;
                     case "Reset Printer":
@@ -775,7 +814,7 @@ namespace Codel1417
                     case "Network":
                     case "Credits":
                     case "Status":
-                        displayTextPage(SelectedName);
+                        DisplayTextPage(_selectedName);
                         break;
                 }
 
@@ -784,83 +823,83 @@ namespace Codel1417
 
         }
 
-        private void displayTextPage(string title)
+        private void DisplayTextPage(string title)
         {
-            resetDisplay();
-            TextPageTitle.text = title;
-            addPage(title);
+            ResetDisplay();
+            textPageTitle.text = title;
+            AddPage(title);
             textPage.gameObject.SetActive(true);
-            TextPageTitle.gameObject.SetActive(true);
+            textPageTitle.gameObject.SetActive(true);
             imageBackButton.gameObject.SetActive(true);
-            display();
+            Display();
         }
 
         public void _sdInsert()
         {
             _displayStatus();
             speaker.Play();
-            lcdMessage = "SD Card Inserted";
+            _lcdMessage = "SD Card Inserted";
             RequestSerialization();
         }
 
         public void _up()
         {
 
-            if (listPagePosition > 0)
+            if (_listPagePosition > 0)
             {
-                listPagePosition--;
+                _listPagePosition--;
             }
 
             speaker.Play();
-            displayOptionsList();
+            DisplayOptionsList();
         }
 
         public void _down()
         {
             speaker.Play();
-            listPagePosition++;
-            displayOptionsList();
+            _listPagePosition++;
+            DisplayOptionsList();
         }
 
         private void _displayListMenu(String type)
         {
-            addPage(type);
-            resetDisplay();
-            TextPageTitle.text = type;
-            listPagePosition = 0;
+            AddPage(type);
+            ResetDisplay();
+            textPageTitle.text = type;
+            _listPagePosition = 0;
             textOption1.gameObject.SetActive(true);
             textOption2.gameObject.SetActive(true);
             textOption3.gameObject.SetActive(true);
             textOption4.gameObject.SetActive(true);
             imageBackButton.gameObject.SetActive(true);
-            TextPageTitle.gameObject.SetActive(true);
-            generateListMenuItems();
-            displayOptionsList();
+            textPageTitle.gameObject.SetActive(true);
+            GenerateListMenuItems();
+            DisplayOptionsList();
         }
 
-        private void displayOptionsList()
+        private void DisplayOptionsList()
         {
-            if (options.Length > (0 + listPagePosition))
+            if (_options.Length > (0 + _listPagePosition))
             {
-                textOption1.text = options[0 + listPagePosition];
+                textOption1.text = _options[0 + _listPagePosition];
             }
 
-            if (options.Length > (1 + listPagePosition))
+            if (_options.Length > (1 + _listPagePosition))
             {
-                textOption2.text = options[1 + listPagePosition];
+                textOption2.text = _options[1 + _listPagePosition];
             }
 
-            if (options.Length > (2 + listPagePosition))
+            if (_options.Length > (2 + _listPagePosition))
             {
-                textOption3.text = options[2 + listPagePosition];
+                textOption3.text = _options[2 + _listPagePosition];
             }
 
-            if (options.Length > (3 + listPagePosition))
+            if (_options.Length > (3 + _listPagePosition))
             {
-                textOption4.text = options[3 + listPagePosition];
+                textOption4.text = _options[3 + _listPagePosition];
             }
 
-            if (options.Length > (4 + listPagePosition))
+            if (_options.Length > (4 + _listPagePosition))
             {
                 imageDown.gameObject.SetActive(true);
             }
@@ -869,7 +908,7 @@ namespace Codel1417
                 imageDown.gameObject.SetActive(false);
             }
 
-            if (listPagePosition > 0)
+            if (_listPagePosition > 0)
             {
                 imageUp.gameObject.SetActive(true);
             }
@@ -881,129 +920,161 @@ namespace Codel1417
 
         public void _displayListOption1()
         {
-            listMenuSelection(0);
+            ListMenuSelection(0);
         }
 
         public void _displayListOption2()
         {
-            listMenuSelection(1);
+            ListMenuSelection(1);
         }
 
         public void _displayListOption3()
         {
-            listMenuSelection(2);
+            ListMenuSelection(2);
         }
 
         public void _displayListOption4()
         {
-            listMenuSelection(3);
+            ListMenuSelection(3);
         }
 
-        private void motorSounds()
+        private Vector3 _absVelocity;
+        private void MotorSounds()
         {
-            Vector3 absVelocity = new Vector3(Mathf.Abs(calcVelocity.x), Mathf.Abs(calcVelocity.y),
-                Mathf.Abs(calcVelocity.z));
-            xMotorAudio.pitch = Mathf.Clamp(0.15f, 0f, absVelocity.x);
-            yMotorAudio.pitch = Mathf.Clamp(0.15f, 0f, absVelocity.y);
-            zMotorAudio.pitch = Mathf.Clamp(0.15f, 0f, absVelocity.z);
+            _absVelocity = new Vector3(Mathf.Abs(_calcVelocity.x), Mathf.Abs(_calcVelocity.y),
+                Mathf.Abs(_calcVelocity.z));
+            xMotorAudio.pitch = Mathf.Clamp(0.15f, 0f, _absVelocity.x);
+            yMotorAudio.pitch = Mathf.Clamp(0.15f, 0f, _absVelocity.y);
+            zMotorAudio.pitch = Mathf.Clamp(0.15f, 0f, _absVelocity.z);
+            
+            if (xMotorAudio.pitch == 0)
+            {
+                xMotorAudio.Stop();
+            }
+            else
+            {
+                xMotorAudio.Play();
+            }
+            if (yMotorAudio.pitch == 0)
+            {
+                yMotorAudio.Stop();
+            }
+            else
+            {
+                yMotorAudio.Play();
+            }
+            if (zMotorAudio.pitch == 0)
+            {
+                zMotorAudio.Stop();
+            }
+            else
+            {
+                zMotorAudio.Play();
+            }
         }
 
-        private void updateAudioVolume()
+        private void UpdateAudioVolume()
         {
             xMotorAudio.volume = audioVolume / 2;
             yMotorAudio.volume = audioVolume / 2;
             zMotorAudio.volume = audioVolume / 2;
-            fanAudio.volume = (Mathf.InverseLerp(0, 512, fanSpeed)) * audioVolume;
+            fanAudio.volume = (Mathf.InverseLerp(0, 512, _fanSpeed)) * audioVolume;
             speaker.volume = audioVolume;
         }
 
-        private String TimeStringGen()
+        private float _timeElapsed;
+        private float _minutes;
+        private float _hours;
+        private float _seconds;
+        private string TimeStringGen()
         {
-            float timeElapsed = Time.time + printStartTime;
-            float minutes = Mathf.Floor(timeElapsed / 60f);
-            float hours = Mathf.Floor(minutes / 60);
-            float seconds = timeElapsed - (minutes * 60);
+            _timeElapsed = Time.time + _printStartTime;
+            _minutes = Mathf.Floor(_timeElapsed / 60f);
+            _hours = Mathf.Floor(_minutes / 60);
+            _seconds = _timeElapsed - (_minutes * 60);
             if (!isPrinting)
             {
                 return "00:00";
             }
 
-            if (hours > 0)
+            if (_hours > 0)
             {
-                return String.Format("{0:00}", hours) + ":" + String.Format("{0:00}", minutes / 60);
+                return $"{_hours:00}" + ":" + $"{_minutes / 60:00}";
             }
-            else return String.Format("{0:00}", minutes) + ":" + String.Format("{0:00}", seconds);
+
+            return $"{_minutes:00}" + ":" + $"{_seconds:00}";
         }
 
-        private void printProgressUpdate()
+        private void PrintProgressUpdate()
         {
-            if (isFileLoaded)
+            if (_isFileLoaded)
             {
-                if (!isManualProgress)
+                if (!_isManualProgress)
                 {
-                    textPrintProgress.maxValue = gcodeFile.Length;
-                    textPrintProgress.value = gcodeFilePosition;
+                    textPrintProgress.maxValue = _gcodeFile.Length;
+                    textPrintProgress.value = _gcodeFilePosition;
                 }
                 else
                 {
                     textPrintProgress.maxValue = 100;
-                    textPrintProgress.value = printProgress;
+                    textPrintProgress.value = _printProgress;
                 }
             }
         }
 
-        public override void OnPostSerialization(VRC.Udon.Common.SerializationResult result)
+        public override void OnPostSerialization(SerializationResult result)
         {
-            lastSyncByteCount = result.byteCount;
-            lastSyncSuccessful = result.success;
+            _lastSyncByteCount = result.byteCount;
+            _lastSyncSuccessful = result.success;
         }
 
-        private void display()
+        private void Display()
         {
-            if (pageDepth == 0)
+            if (_pageDepth == 0)
             {
-                printProgressUpdate();
+                PrintProgressUpdate();
                 textTime.text = TimeStringGen();
-                textHotendTargetTemperature.text = Mathf.Floor(targetHotendTemperature) + "°";
-                textHotendCurrentTemperature.text = Mathf.Floor(currentHotendTemperature) + "°";
-                textBedTargetTemperature.text = Mathf.Floor(targetBedTemperature) + "°";
-                textBedCurrentTemperature.text = Mathf.Floor(currentBedTemperature) + "°";
-                textFanSpeed.text = Mathf.InverseLerp(0, 255, fanSpeed) * 100 + "%";
-                textStatus.text = lcdMessage;
-                textXPos.text = "X" + printerCordPosition.x.ToString("F1", CultureInfo.InvariantCulture);
-                textYPos.text = "Y" + printerCordPosition.y.ToString("F1", CultureInfo.InvariantCulture);
-                textZPos.text = "Z" + printerCordPosition.z.ToString("F1", CultureInfo.InvariantCulture);
+                textHotendTargetTemperature.text = Mathf.Floor(_targetHotendTemperature) + "°";
+                textHotendCurrentTemperature.text = Mathf.Floor(_currentHotendTemperature) + "°";
+                textBedTargetTemperature.text = Mathf.Floor(_targetBedTemperature) + "°";
+                textBedCurrentTemperature.text = Mathf.Floor(_currentBedTemperature) + "°";
+                textFanSpeed.text = Mathf.InverseLerp(0, 255, _fanSpeed) * 100 + "%";
+                textStatus.text = _lcdMessage;
+                textXPos.text = "X" + _printerCordPosition.x.ToString("F1", CultureInfo.InvariantCulture);
+                textYPos.text = "Y" + _printerCordPosition.y.ToString("F1", CultureInfo.InvariantCulture);
+                textZPos.text = "Z" + _printerCordPosition.z.ToString("F1", CultureInfo.InvariantCulture);
+                return;
             }
 
-            switch (TextPageTitle.text)
+            switch (textPageTitle.text)
             {
                 case "Position":
-                    textPage.text = "PrintPos: " + printerCordPosition + "\nNormalPos: " + normalPosition +
-                                    "\nCurrentPos: " + currentPosition + "\nVelocity: " + calcVelocity +
-                                    "\nFeedRate: " + feedRate + "\nisRelativeG0: " + isRelativeMovement;
+                    textPage.text = "PrintPos: " + _printerCordPosition + "\nNormalPos: " + _normalPosition +
+                                    "\nCurrentPos: " + _currentPosition + "\nVelocity: " + _calcVelocity +
+                                    "\nFeedRate: " + _feedRate + "\nisRelativeG0: " + _isRelativeMovement;
                     break;
                 case "Status":
-                    textPage.text = "isPrinting: " + isPrinting + "\nisBusy: " + isBusy + "\nisPaused: " + isPaused +
-                                    "\nisWaitingHotend: " + isWaitingHotend + "\nisWaitingBed: " + isWaitingBed +
-                                    "\nisManualProgress: " + isManualProgress + "\nisExtrude: " + extrudeCheck;
+                    textPage.text = "isPrinting: " + isPrinting + "\nisBusy: " + _isBusy + "\nisPaused: " + isPaused +
+                                    "\nisWaitingHotend: " + _isWaitingHotend + "\nisWaitingBed: " + _isWaitingBed +
+                                    "\nisManualProgress: " + _isManualProgress + "\nisExtrude: " + _extrudeCheck;
                     break;
                 case "GCode":
-                    int gcodeNum = Mathf.Clamp(gcodeFilePosition - 1, 0, gcodeFile.Length);
-                    textPage.text = "FilePosition: " + gcodeFilePosition + "\nNetFilePosition: " + networkFilePosition +
-                                    "\nSDCard: " + loadedSdCard + "\nFileLines: " + gcodeFile.Length + "\nFileID: " +
-                                    gcodeFileSelected + "\n> " + gcodeFile[gcodeNum];
+                    int gcodeNum = Mathf.Clamp(_gcodeFilePosition - 1, 0, _gcodeFile.Length);
+                    textPage.text = "FilePosition: " + _gcodeFilePosition + "\nNetFilePosition: " + networkFilePosition +
+                                    "\nSDCard: " + loadedSdCard + "\nFileLines: " + _gcodeFile.Length + "\nFileID: " +
+                                    _gcodeFileSelected + "\n> " + _gcodeFile[gcodeNum];
                     break;
                 case "Mesh":
-                    textPage.text = "\nTrail Size: " + trailRenderer.positionCount + "\nisMeshHidden: " + isMeshHidden +
+                    textPage.text = "\nTrail Size: " + trailRenderer.positionCount + "\nisMeshHidden: " + _isMeshHidden +
                                     "\nTrailOffset: " + lineMaterial.GetVector("_PositionOffset") +
-                                    "\nMesh vertices: " + totalVertices;
+                                    "\nMesh vertices: " + _totalVertices;
                     break;
                 case "Network":
                     textPage.text = "isClogged: " + Networking.IsClogged + "\nisInstanceOwner: " +
                                     Networking.IsInstanceOwner + "\nisMaster: " + Networking.IsMaster +
                                     "\nisNetworkSettled: " + Networking.IsNetworkSettled + "\nisLastSyncSucessful: " +
-                                    lastSyncSuccessful + "\nlastSyncBytes: " + lastSyncByteCount + "\nOwner: " +
-                                    Networking.GetOwner(this.gameObject).displayName;
+                                    _lastSyncSuccessful + "\nlastSyncBytes: " + _lastSyncByteCount + "\nOwner: " +
+                                    Networking.GetOwner(gameObject).displayName;
                     break; //breaks in Unity
                 case "Credits":
                     textPage.text =
@@ -1012,261 +1083,276 @@ namespace Codel1417
             }
         }
 
-        private void addVertToTrail(bool isExtrude)
+        private Vector3 _nozzleLocal;
+        private Vector3 _point;
+        private Vector3 _nozzlePosition;
+        private void AddVertToTrail(bool isExtrude)
         {
-            if (trailRenderer.positionCount < 50)
+            if (trailRenderer.positionCount < 10000)
             {
                 if (isExtrude)
                 {
                     //Cold Extrusion Prevention
-                    if (currentHotendTemperature > 160f)
+                    if (_currentHotendTemperature > 160f)
                     {
-                        Vector3 nozzleLocal = transform.InverseTransformPoint(nozzle.position);
-                        Vector3 point = Vector3.zero;
+                        _nozzleLocal = transform.InverseTransformPoint(nozzle.position);
+                        _point = Vector3.zero;
                         switch (yAxisMovementAxis)
                         {
                             case 0:
-                                point = new Vector3(nozzleLocal.x, nozzleLocal.y,
-                                    -Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y));
+                                _point = new Vector3(_nozzleLocal.x, _nozzleLocal.y,
+                                    -Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y));
                                 break;
                             case 1:
-                                point = new Vector3(nozzleLocal.x, nozzleLocal.y,
-                                    -Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y));
+                                _point = new Vector3(_nozzleLocal.x, _nozzleLocal.y,
+                                    -Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y));
                                 break;
                             case 2:
-                                point = new Vector3(nozzleLocal.x, nozzleLocal.y,
-                                    -Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y));
+                                _point = new Vector3(_nozzleLocal.x, _nozzleLocal.y,
+                                    -Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y));
                                 break;
                         }
 
                         //The Nozzle isnt actually moving in the Y axis (Z World). We have to move the trail position to simulate the movement of the bed.
-                        trailRenderer.AddPosition(transform.TransformPoint(point));
-                        totalVertices = totalVertices + 2; //technically the shader adds 4 per vert 
+                        trailRenderer.AddPosition(transform.TransformPoint(_point));
+                        _totalVertices += 2; //technically the shader adds 4 per vert 
 
                     }
                     else
                     {
-                        lcdMessage = "Cold Extrusion Prevented";
+                        _lcdMessage = "Cold Extrusion Prevented";
                     }
                 }
                 else
                 {
-                    totalVertices =
-                        totalVertices +
-                        2; //technically the shader adds 4 per vert but the trail adds 2 verts per point.
-                    trailRenderer.AddPosition(new Vector3(nozzle.position.x, nozzle.position.y - (20f * printerScale),
-                        nozzle.position.z));
+                    _totalVertices += 2; //technically the shader adds 4 per vert but the trail adds 2 verts per point.
+                    _nozzlePosition = nozzle.position;
+                    trailRenderer.AddPosition(new Vector3(_nozzlePosition.x, _nozzlePosition.y - (20f * _printerScale),
+                        _nozzlePosition.z));
                 }
             }
             else
             {
-                generateMesh();
-                //generateBounds();
-                addVertToTrail(isExtrude);
+                GenerateMesh();
+                AddVertToTrail(isExtrude);
             }
         }
 
-        private void generateMesh()
-        {
-            Mesh mesh = new Mesh();
-            CombineInstance[] combine = new CombineInstance[2];
-            Mesh bigMesh = meshFilter.mesh;
-            trailRenderer.BakeMesh(mesh);
-            if (bigMesh == null)
-            {
-                meshFilter.mesh = mesh;
-            }
 
-            combine[0].mesh = bigMesh;
-            //combine[0].transform = Matrix4x4.Translate(trailRenderer.transform.position);
-            combine[1].mesh = mesh;
-            //combine[1].transform = Matrix4x4.Translate(meshFilter.transform.position);
-            Mesh comMesh = new Mesh();
-            comMesh.CombineMeshes(combine, true, false);
-            meshFilter.mesh = comMesh;
-            //meshObjects[meshObjectCount] = VRCInstantiate(_emptyMeshFilter).GetComponent<MeshFilter>();
-            //meshObjects[meshObjectCount].mesh = mesh;
-            //meshObjects[meshObjectCount].gameObject.SetActive(!isMeshHidden);
+        private void GenerateMesh()
+        {
+            Mesh other = meshFilter.mesh;
+            trailRenderer.BakeMesh(_trailGeneratedMesh);
+            _combined.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            //_combine = new CombineInstance[2];
+            _combine[0].mesh = _trailGeneratedMesh;
+            _combine[1].mesh = other;
+            _combined.CombineMeshes(_combine,true,false);
+            //_combined.RecalculateBounds();
+            //_combined.Optimize();
+            //_bigMesh = combined;
+            _trailGeneratedMesh.Clear();
+            meshFilter.mesh = _combined;
             trailRenderer.Clear();
-            meshFilter.transform.position = Vector3.zero;
-            //meshObjectCount++;
+            other.Clear();
+            _combined = other;
         }
 
-        private void displayValue()
+        private void DisplayValue()
         {
-            switch (TextPageTitle.text)
+            switch (textPageTitle.text)
             {
                 case "Speed":
-                    textValue.text = Convert.ToString(printerSpeed) + "%";
+                    textValue.text = Convert.ToString(printerSpeed, CultureInfo.InvariantCulture) + "%";
                     return;
                 case "Audio Volume":
-                    textValue.text = Convert.ToString(audioVolume * 100) + "%";
+                    textValue.text = Convert.ToString(audioVolume * 100, CultureInfo.InvariantCulture) + "%";
                     break;
                 case "Hotend Temp":
-                    textValue.text = Convert.ToString(targetHotendTemperature) + "°C";
+                    textValue.text = Convert.ToString(_targetHotendTemperature, CultureInfo.InvariantCulture) + "°C";
                     return;
                 case "Bed Temp":
-                    textValue.text = Convert.ToString(targetBedTemperature) + "°C";
+                    textValue.text = Convert.ToString(_targetBedTemperature, CultureInfo.InvariantCulture) + "°C";
                     return;
                 case "Fan Speed":
-                    textValue.text = Convert.ToString(fanSpeed);
+                    textValue.text = Convert.ToString(_fanSpeed, CultureInfo.InvariantCulture);
                     return;
                 case "Move X Axis":
-                    textValue.text = Convert.ToString(printerCordPosition.x) + "mm";
+                    textValue.text = Convert.ToString(_printerCordPosition.x, CultureInfo.InvariantCulture) + "mm";
                     break;
                 case "Move Y Axis":
-                    textValue.text = Convert.ToString(printerCordPosition.y) + "mm";
+                    textValue.text = Convert.ToString(_printerCordPosition.y, CultureInfo.InvariantCulture) + "mm";
                     break;
                 case "Move Z Axis":
-                    textValue.text = Convert.ToString(printerCordPosition.z) + "mm";
+                    textValue.text = Convert.ToString(_printerCordPosition.z, CultureInfo.InvariantCulture) + "mm";
                     break;
             }
         }
 
-        private void updateValue(int value)
+        private void UpdateValue(int value)
         {
             speaker.Play();
-            switch (TextPageTitle.text)
+            switch (textPageTitle.text)
             {
                 case "Speed":
                     printerSpeed = Mathf.Clamp(printerSpeed + value, 50f, 1000f);
                     break;
                 case "Audio Volume":
                     audioVolume = Mathf.Clamp(audioVolume + (value * 0.01f), 0f, 1f);
-                    updateAudioVolume();
+                    UpdateAudioVolume();
                     break;
                 case "Hotend Temp":
-                    targetHotendTemperature = Mathf.Clamp(targetHotendTemperature + value, 0, 260);
+                    _targetHotendTemperature = Mathf.Clamp(_targetHotendTemperature + value, 0, 260);
                     break;
                 case "Bed Temp":
-                    targetBedTemperature = Mathf.Clamp(targetBedTemperature + value, 0, 110);
+                    _targetBedTemperature = Mathf.Clamp(_targetBedTemperature + value, 0, 110);
                     break;
                 case "Fan Speed":
-                    fanSpeed = Mathf.Clamp(fanSpeed + value, 0, 255);
-                    printFan.speed = fanSpeed;
-                    fanAudio.volume = (Mathf.InverseLerp(0, 1024, fanSpeed));
+                    _fanSpeed = Mathf.Clamp(_fanSpeed + value, 0, 255);
+                    printFan.speed = _fanSpeed;
+                    fanAudio.volume = (Mathf.InverseLerp(0, 1024, _fanSpeed));
                     break;
                 case "Move X Axis":
-                    printerCordPosition.x = Mathf.Clamp(printerCordPosition.x + value, 0, printerSizeInMM.x);
-                    normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, printerCordPosition.x + value);
-                    isBusy = true;
-                    feedRate = 30;
+                    _printerCordPosition.x = Mathf.Clamp(_printerCordPosition.x + value, 0, printerSizeInMM.x);
+                    _normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, _printerCordPosition.x + value);
+                    _isBusy = true;
+                    _feedRate = 30;
                     break;
                 case "Move Y Axis":
-                    printerCordPosition.y = Mathf.Clamp(printerCordPosition.y + value, 0, printerSizeInMM.y);
-                    normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, printerCordPosition.y + value);
-                    isBusy = true;
-                    feedRate = 30;
+                    _printerCordPosition.y = Mathf.Clamp(_printerCordPosition.y + value, 0, printerSizeInMM.y);
+                    _normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, _printerCordPosition.y + value);
+                    _isBusy = true;
+                    _feedRate = 30;
                     break;
                 case "Move Z Axis":
-                    printerCordPosition.z = Mathf.Clamp(printerCordPosition.z + value, 0, printerSizeInMM.z);
-                    normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, printerCordPosition.z + value);
-                    isBusy = true;
+                    _printerCordPosition.z = Mathf.Clamp(_printerCordPosition.z + value, 0, printerSizeInMM.z);
+                    _normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, _printerCordPosition.z + value);
+                    _isBusy = true;
                     break;
             }
 
-            displayValue();
+            DisplayValue();
             RequestSerialization();
         }
 
         public void _add1()
         {
-            updateValue(1);
+            UpdateValue(1);
         }
 
         public void _add10()
         {
-            updateValue(10);
+            UpdateValue(10);
         }
 
         public void _add25()
         {
-            updateValue(25);
+            UpdateValue(25);
         }
 
         public void _sub1()
         {
-            updateValue(-1);
+            UpdateValue(-1);
         }
 
         public void _sub10()
         {
-            updateValue(-10);
+            UpdateValue(-10);
         }
 
         public void _sub25()
         {
-            updateValue(-25);
+            UpdateValue(-25);
         }
 
-        private void move()
+        private Vector3 _previousPosition;
+        private Vector3 _localPosition;
+        private void Move()
         {
-            Vector3 previousPosition = currentPosition;
-            currentPosition.x = Mathf.SmoothDamp(currentPosition.x, normalPosition.x, ref velocity.x, 0f,
-                Mathf.Clamp(feedRate, 0, 500));
-            currentPosition.y = Mathf.SmoothDamp(currentPosition.y, normalPosition.y, ref velocity.z, 0f,
-                Mathf.Clamp(feedRate, 0, 500));
-            currentPosition.z = Mathf.SmoothDamp(currentPosition.z, normalPosition.z, ref velocity.z, 0f,
-                Mathf.Clamp(feedRate, 0, 5));
+            _previousPosition = _currentPosition;
+            _currentPosition.x = Mathf.SmoothDamp(_currentPosition.x, _normalPosition.x, ref _velocity.x, 0f,
+                Mathf.Clamp(_feedRate, 0, 500 * printerSpeed * 0.01f));
+            _currentPosition.y = Mathf.SmoothDamp(_currentPosition.y, _normalPosition.y, ref _velocity.z, 0f,
+                Mathf.Clamp(_feedRate, 0, 500 * printerSpeed * 0.01f ));
+            _currentPosition.z = Mathf.SmoothDamp(_currentPosition.z, _normalPosition.z, ref _velocity.z, 0f,
+                Mathf.Clamp(_feedRate, 0, 5 * printerSpeed * 0.01f));
 
-            calcVelocity = (previousPosition - currentPosition) * 50; //used for sound
+            _calcVelocity = (_previousPosition - _currentPosition) * 50; //used for sound
 
             switch (xAxisMovementAxis)
             {
                 case 0:
-                    XAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x),
-                        XAxis.localPosition.y, XAxis.localPosition.z);
+                    _localPosition = xAxis.localPosition;
+                    _localPosition = new Vector3(Mathf.Lerp(minPosition.x, maxPosition.x, _currentPosition.x),
+                        _localPosition.y, _localPosition.z);
+                    xAxis.localPosition = _localPosition;
                     break;
                 case 1:
-                    XAxis.localPosition = new Vector3(XAxis.localPosition.x,
-                        Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x), XAxis.localPosition.z);
+                    _localPosition = xAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x,
+                        Mathf.Lerp(minPosition.x, maxPosition.x, _currentPosition.x), _localPosition.z);
+                    xAxis.localPosition = _localPosition;
                     break;
                 case 2:
-                    XAxis.localPosition = new Vector3(XAxis.localPosition.x, XAxis.localPosition.y,
-                        Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x));
+                    _localPosition = xAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x, _localPosition.y,
+                        Mathf.Lerp(minPosition.x, maxPosition.x, _currentPosition.x));
+                    xAxis.localPosition = _localPosition;
                     break;
             }
 
             switch (yAxisMovementAxis)
             {
                 case 0:
-                    YAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y),
-                        YAxis.localPosition.y, YAxis.localPosition.z);
+                    _localPosition = yAxis.localPosition;
+                    _localPosition = new Vector3(Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y),
+                        _localPosition.y, _localPosition.z);
+                    yAxis.localPosition = _localPosition;
                     break;
                 case 1:
-                    YAxis.localPosition = new Vector3(YAxis.localPosition.x,
-                        Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y), YAxis.localPosition.z);
+                    _localPosition = yAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x,
+                        Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y), _localPosition.z);
+                    yAxis.localPosition = _localPosition;
                     break;
                 case 2:
-                    YAxis.localPosition = new Vector3(YAxis.localPosition.x, YAxis.localPosition.y,
-                        Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y));
+                    _localPosition = yAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x, _localPosition.y,
+                        Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y));
+                    yAxis.localPosition = _localPosition;
                     break;
             }
 
             switch (zAxisMovementAxis)
             {
                 case 0:
-                    ZAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.z, maxPosition.z, currentPosition.z),
-                        ZAxis.localPosition.y, ZAxis.localPosition.z);
+                    _localPosition = zAxis.localPosition;
+                    _localPosition = new Vector3(Mathf.Lerp(minPosition.z, maxPosition.z, _currentPosition.z),
+                        _localPosition.y, _localPosition.z);
+                    zAxis.localPosition = _localPosition;
                     break;
                 case 1:
-                    ZAxis.localPosition = new Vector3(ZAxis.localPosition.x,
-                        Mathf.Lerp(minPosition.z, maxPosition.z, currentPosition.z), ZAxis.localPosition.z);
+                    _localPosition = zAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x,
+                        Mathf.Lerp(minPosition.z, maxPosition.z, _currentPosition.z), _localPosition.z);
+                    zAxis.localPosition = _localPosition;
                     break;
                 case 2:
-                    ZAxis.localPosition = new Vector3(ZAxis.localPosition.x, ZAxis.localPosition.y,
-                        Mathf.Lerp(minPosition.z, maxPosition.z, currentPosition.z));
+                    _localPosition = zAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x, _localPosition.y,
+                        Mathf.Lerp(minPosition.z, maxPosition.z, _currentPosition.z));
+                    zAxis.localPosition = _localPosition;
                     break;
             }
 
-            if (Mathf.Approximately(currentPosition.x, normalPosition.x) &&
-                Mathf.Approximately(currentPosition.y, normalPosition.y) &&
-                Mathf.Approximately(currentPosition.z, normalPosition.z))
+            if (Mathf.Approximately(_currentPosition.x, _normalPosition.x) &&
+                Mathf.Approximately(_currentPosition.y, _normalPosition.y) &&
+                Mathf.Approximately(_currentPosition.z, _normalPosition.z))
             {
-                isBusy = false;
-                if (extrudeCheck)
+                _isBusy = false;
+                if (_extrudeCheck)
                 {
-                    addVertToTrail(extrudeCheck);
+                    AddVertToTrail(_extrudeCheck);
                 }
             }
 
@@ -1274,127 +1360,146 @@ namespace Codel1417
             {
                 case 0:
                     lineMaterial.SetVector("_PositionOffset",
-                        transform.TransformVector(new Vector3(0, 0, (YAxis.localPosition.x) - trailOffset)));
+                        transform.TransformVector(new Vector3(0, 0, (yAxis.localPosition.x) - trailOffset)));
                     break;
                 case 1:
                     lineMaterial.SetVector("_PositionOffset",
-                        transform.TransformVector(new Vector3(0, 0, (YAxis.localPosition.y) - trailOffset)));
+                        transform.TransformVector(new Vector3(0, 0, (yAxis.localPosition.y) - trailOffset)));
                     break;
                 case 2:
                     lineMaterial.SetVector("_PositionOffset",
-                        transform.TransformVector(new Vector3(0, 0, (YAxis.localPosition.z) - trailOffset)));
+                        transform.TransformVector(new Vector3(0, 0, (yAxis.localPosition.z) - trailOffset)));
                     break;
             }
         }
 
-        private void fastMove()
+        private void FastMove()
         {
-            currentPosition = normalPosition;
+            _currentPosition = _normalPosition;
             switch (xAxisMovementAxis)
             {
                 case 0:
-                    XAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x),
-                        XAxis.localPosition.y, XAxis.localPosition.z);
+                    _localPosition = xAxis.localPosition;
+                    _localPosition = new Vector3(Mathf.Lerp(minPosition.x, maxPosition.x, _currentPosition.x),
+                        _localPosition.y, _localPosition.z);
+                    xAxis.localPosition = _localPosition;
                     break;
                 case 1:
-                    XAxis.localPosition = new Vector3(XAxis.localPosition.x,
-                        Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x), XAxis.localPosition.z);
+                    _localPosition = xAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x,
+                        Mathf.Lerp(minPosition.x, maxPosition.x, _currentPosition.x), _localPosition.z);
+                    xAxis.localPosition = _localPosition;
                     break;
                 case 2:
-                    XAxis.localPosition = new Vector3(XAxis.localPosition.x, XAxis.localPosition.y,
-                        Mathf.Lerp(minPosition.x, maxPosition.x, currentPosition.x));
+                    _localPosition = xAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x, _localPosition.y,
+                        Mathf.Lerp(minPosition.x, maxPosition.x, _currentPosition.x));
+                    xAxis.localPosition = _localPosition;
                     break;
             }
 
             switch (yAxisMovementAxis)
             {
                 case 0:
-                    YAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y),
-                        YAxis.localPosition.y, YAxis.localPosition.z);
+                    _localPosition = yAxis.localPosition;
+                    _localPosition = new Vector3(Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y),
+                        _localPosition.y, _localPosition.z);
+                    yAxis.localPosition = _localPosition;
                     break;
                 case 1:
-                    YAxis.localPosition = new Vector3(YAxis.localPosition.x,
-                        Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y), YAxis.localPosition.z);
+                    _localPosition = yAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x,
+                        Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y), _localPosition.z);
+                    yAxis.localPosition = _localPosition;
                     break;
                 case 2:
-                    YAxis.localPosition = new Vector3(YAxis.localPosition.x, YAxis.localPosition.y,
-                        Mathf.Lerp(minPosition.y, maxPosition.y, currentPosition.y));
+                    _localPosition = yAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x, _localPosition.y,
+                        Mathf.Lerp(minPosition.y, maxPosition.y, _currentPosition.y));
+                    yAxis.localPosition = _localPosition;
                     break;
             }
 
             switch (zAxisMovementAxis)
             {
                 case 0:
-                    ZAxis.localPosition = new Vector3(Mathf.Lerp(minPosition.z, maxPosition.z, currentPosition.z),
-                        ZAxis.localPosition.y, ZAxis.localPosition.z);
+                    _localPosition = zAxis.localPosition;
+                    _localPosition = new Vector3(Mathf.Lerp(minPosition.z, maxPosition.z, _currentPosition.z),
+                        _localPosition.y, _localPosition.z);
+                    zAxis.localPosition = _localPosition;
                     break;
                 case 1:
-                    ZAxis.localPosition = new Vector3(ZAxis.localPosition.x,
-                        Mathf.Lerp(minPosition.z, maxPosition.z, currentPosition.z), ZAxis.localPosition.z);
+                    _localPosition = zAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x,
+                        Mathf.Lerp(minPosition.z, maxPosition.z, _currentPosition.z), _localPosition.z);
+                    zAxis.localPosition = _localPosition;
                     break;
                 case 2:
-                    ZAxis.localPosition = new Vector3(ZAxis.localPosition.x, ZAxis.localPosition.y,
-                        Mathf.Lerp(minPosition.z, maxPosition.z, currentPosition.z));
+                    _localPosition = zAxis.localPosition;
+                    _localPosition = new Vector3(_localPosition.x, _localPosition.y,
+                        Mathf.Lerp(minPosition.z, maxPosition.z, _currentPosition.z));
+                    zAxis.localPosition = _localPosition;
                     break;
             }
 
-            isBusy = false;
-            if (extrudeCheck)
+            _isBusy = false;
+            if (_extrudeCheck)
             {
-                addVertToTrail(extrudeCheck);
+                AddVertToTrail(_extrudeCheck);
             }
         }
 
-        private void heaters()
+        private void Heaters()
         {
             //ambient cooldown
-            currentBedTemperature = Mathf.MoveTowards(currentBedTemperature, ambientTemperature,
+            _currentBedTemperature = Mathf.MoveTowards(_currentBedTemperature, ambientTemperature,
                 0.1f * Time.deltaTime * (printerSpeed / 100));
-            currentHotendTemperature = Mathf.MoveTowards(currentHotendTemperature, ambientTemperature,
+            _currentHotendTemperature = Mathf.MoveTowards(_currentHotendTemperature, ambientTemperature,
                 0.5f * Time.deltaTime * (printerSpeed / 100));
 
-            if (targetBedTemperature > ambientTemperature)
+            if (_targetBedTemperature > ambientTemperature)
             {
-                currentBedTemperature = Mathf.MoveTowards(currentBedTemperature, targetBedTemperature,
+                _currentBedTemperature = Mathf.MoveTowards(_currentBedTemperature, _targetBedTemperature,
                     0.5f * Time.deltaTime * (printerSpeed / 100));
             }
 
-            if (targetHotendTemperature > ambientTemperature)
+            if (_targetHotendTemperature > ambientTemperature)
             {
-                currentHotendTemperature = Mathf.MoveTowards(currentHotendTemperature, targetHotendTemperature,
+                _currentHotendTemperature = Mathf.MoveTowards(_currentHotendTemperature, _targetHotendTemperature,
                     2f * Time.deltaTime * (printerSpeed / 100));
             }
 
-            if (Mathf.Approximately(currentBedTemperature, targetBedTemperature))
+            if (Mathf.Approximately(_currentBedTemperature, _targetBedTemperature))
             {
-                if (isWaitingBed)
+                if (_isWaitingBed)
                 {
-                    isBusy = false;
-                    lcdMessage = versionInfo;
+                    _isBusy = false;
+                    _lcdMessage = VERSION_INFO;
                 }
 
-                isWaitingBed = false;
+                _isWaitingBed = false;
             }
 
-            if (Mathf.Approximately(currentHotendTemperature, targetHotendTemperature))
+            if (Mathf.Approximately(_currentHotendTemperature, _targetHotendTemperature))
             {
-                if (isWaitingHotend)
+                if (_isWaitingHotend)
                 {
-                    isBusy = false;
-                    lcdMessage = versionInfo;
+                    _isBusy = false;
+                    _lcdMessage = VERSION_INFO;
                 }
 
-                isWaitingHotend = false;
+                _isWaitingHotend = false;
             }
         }
 
-        private void readFile(TextAsset text)
+        private void ReadFile(TextAsset text)
         {
-            gcodeFile = text.text.Split('\n');
-            isFileLoaded = true;
+            _gcodeFile = text.text.Split('\n');
+            _isFileLoaded = true;
         }
 
-        private void parseGcode(string gcode)
+        private string[] _splitGcodeLine;
+        private void ParseGcode(string gcode)
         {
             if (string.IsNullOrEmpty(gcode) || gcode[0] == ';')
             {
@@ -1407,24 +1512,25 @@ namespace Codel1417
                 gcode = gcode.Substring(0, gcode.IndexOf(';') - 1);
             }
 
-            string[] words = gcode.Split(' ');
-            if (words.Length == 0)
+            _splitGcodeLine = gcode.Split(' ');
+            if (_splitGcodeLine.Length == 0)
             {
                 //if empty line
                 return;
             }
-            else if (words[0].Length <= 1)
+
+            if (_splitGcodeLine[0].Length <= 1)
             {
                 //if too short to be a command
                 return;
             }
 
-            isBusy = true;
-            switch (words[0].Trim())
+            _isBusy = true;
+            switch (_splitGcodeLine[0].Trim())
             {
                 case "G0":
                 case "G1":
-                    G0(words);
+                    G0(_splitGcodeLine);
                     break;
                 case "G28":
                     G28();
@@ -1433,19 +1539,19 @@ namespace Codel1417
                     M25();
                     break;
                 case "M73":
-                    M73(words);
+                    M73(_splitGcodeLine);
                     break;
                 case "M104":
-                    M104(words);
+                    M104(_splitGcodeLine);
                     break;
                 case "M106":
-                    M106(words);
+                    M106(_splitGcodeLine);
                     break;
                 case "M107":
                     M107();
                     break;
                 case "M109":
-                    M109(words);
+                    M109(_splitGcodeLine);
                     break;
                 case "M117":
                     M117(gcode);
@@ -1454,19 +1560,19 @@ namespace Codel1417
                     M118(gcode);
                     break;
                 case "M140":
-                    M140(words);
+                    M140(_splitGcodeLine);
                     break;
                 case "M190":
-                    M190(words);
+                    M190(_splitGcodeLine);
                     break;
                 case "G29": break; //bed leveling 
                 case "M82":
-                    isRelativeMovement = true;
+                    _isRelativeMovement = true;
                     break;
                 case "M105": break; //report temperature to serial
                 case "M84": break; //disable steppers
                 case "G90":
-                    isRelativeMovement = false;
+                    _isRelativeMovement = false;
                     break;
                 case "G92": break; //set position.
                 default:
@@ -1475,84 +1581,86 @@ namespace Codel1417
             }
         }
 
+        private float _value, _value1, _value2;
+        private string _currentGcodeLineSection;
+
         //G0/G1 is a linear move;
         private void G0(string[] words)
         {
-            extrudeCheck = false;
+            _extrudeCheck = false;
             for (int i = 1; i < words.Length; i++)
             {
-                string currentGcodeLineSection;
 
                 if (words[i].Length > 0)
                 {
-                    currentGcodeLineSection = words[i].Substring(1);
+                    _currentGcodeLineSection = words[i].Substring(1);
                 }
                 else continue;
 
                 switch (words[i][0])
                 {
                     case 'X':
-                        float value = Convert.ToSingle(currentGcodeLineSection);
-                        if (isRelativeMovement)
+                        _value = Convert.ToSingle(_currentGcodeLineSection);
+                        if (_isRelativeMovement)
                         {
-                            printerCordPosition.x = Mathf.Clamp(printerCordPosition.x + value, 0f, printerSizeInMM.x);
-                            normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, printerCordPosition.x);
+                            _printerCordPosition.x = Mathf.Clamp(_printerCordPosition.x + _value, 0f, printerSizeInMM.x);
+                            _normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, _printerCordPosition.x);
                         }
                         else
                         {
-                            printerCordPosition.x = value;
-                            normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, value);
+                            _printerCordPosition.x = _value;
+                            _normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, _value);
                         }
 
                         break;
                     case 'Y':
-                        float value1 = Convert.ToSingle(currentGcodeLineSection);
-                        if (isRelativeMovement)
+                        _value1 = Convert.ToSingle(_currentGcodeLineSection);
+                        if (_isRelativeMovement)
                         {
-                            printerCordPosition.y = Mathf.Clamp(printerCordPosition.y + value1, 0f, printerSizeInMM.y);
-                            normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, printerCordPosition.y);
+                            _printerCordPosition.y = Mathf.Clamp(_printerCordPosition.y + _value1, 0f, printerSizeInMM.y);
+                            _normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, _printerCordPosition.y);
 
                         }
                         else
                         {
-                            printerCordPosition.y = value1;
-                            normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, value1);
+                            _printerCordPosition.y = _value1;
+                            _normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, _value1);
                         }
 
                         break;
                     case 'Z':
-                        float value2 = Convert.ToSingle(currentGcodeLineSection);
-                        if (isRelativeMovement)
+                        _value2 = Convert.ToSingle(_currentGcodeLineSection);
+                        if (_isRelativeMovement)
                         {
-                            printerCordPosition.z = Mathf.Clamp(printerCordPosition.z + value2, 0f, printerSizeInMM.z);
-                            normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, printerCordPosition.z);
+                            _printerCordPosition.z = Mathf.Clamp(_printerCordPosition.z + _value2, 0f, printerSizeInMM.z);
+                            _normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, _printerCordPosition.z);
 
                         }
                         else
                         {
-                            printerCordPosition.z = value2;
-                            normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, value2);
+                            _printerCordPosition.z = _value2;
+                            _normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, _value2);
                         }
 
                         break;
                     case 'F':
-                        feedRate = Convert.ToSingle(currentGcodeLineSection,
-                            System.Globalization.CultureInfo.InvariantCulture) * (printerSpeed * 0.0001f);
+                        _feedRate = Convert.ToSingle(_currentGcodeLineSection,
+                            CultureInfo.InvariantCulture) * (printerSpeed * 0.0001f);
                         break;
                     case 'E':
-                        extrudeCheck = true;
+                        _extrudeCheck = true;
                         break;
                 }
             }
 
-            addVertToTrail(extrudeCheck);
+            AddVertToTrail(_extrudeCheck);
         }
 
         private void G28()
         {
-            normalPosition = Vector3.zero;
-            printerCordPosition = Vector3.zero;
-            feedRate = 15;
+            _normalPosition = Vector3.zero;
+            _printerCordPosition = Vector3.zero;
+            _feedRate = 15 * printerSpeed * 0.01f;
         }
 
         private void M25()
@@ -1562,72 +1670,67 @@ namespace Codel1417
 
         private void M73(String[] words)
         {
-            isManualProgress = true;
+            _isManualProgress = true;
             for (int i = 1; i < words.Length; i++)
             {
-                string currentGcodeLineSection;
-
                 if (words[i].Length > 0)
                 {
-                    currentGcodeLineSection = words[i].Substring(1);
+                    _currentGcodeLineSection = words[i].Substring(1);
                 }
                 else continue;
 
                 switch (words[i][0])
                 {
                     case 'P':
-                        printProgress =
+                        _printProgress =
                             Mathf.Clamp(
-                                Convert.ToSingle(currentGcodeLineSection,
-                                    System.Globalization.CultureInfo.InvariantCulture), 0f, 255f);
+                                Convert.ToSingle(_currentGcodeLineSection,
+                                    CultureInfo.InvariantCulture), 0f, 255f);
                         break;
                 }
             }
         }
-
         private void M104(string[] words)
         {
             for (int i = 1; i < words.Length; i++)
             {
-                string currentGcodeLineSection;
 
                 if (words[i].Length > 0)
                 {
-                    currentGcodeLineSection = words[i].Substring(1);
+                    _currentGcodeLineSection = words[i].Substring(1);
                 }
                 else continue;
 
                 switch (words[i][0])
                 {
                     case 'S':
-                        targetHotendTemperature = Mathf.Clamp(Convert.ToInt32(currentGcodeLineSection), 0, 260);
+                        _targetHotendTemperature = Mathf.Clamp(Convert.ToInt32(_currentGcodeLineSection), 0, 260);
                         break;
                 }
             }
         }
 
+        private float _speed;
         private void M106(string[] words)
         {
             for (int i = 1; i < words.Length; i++)
             {
-                string currentGcodeLineSection;
-
                 if (words[i].Length > 0)
                 {
-                    currentGcodeLineSection = words[i].Substring(1);
+                    _currentGcodeLineSection = words[i].Substring(1);
                 }
                 else continue;
 
                 switch (words[i][0])
                 {
                     case 'S':
-                        float speed =
+                        _speed =
                             Mathf.Clamp(
-                                Convert.ToSingle(currentGcodeLineSection,
-                                    System.Globalization.CultureInfo.InvariantCulture), 0f, 255f);
-                        fanAudio.volume = (Mathf.InverseLerp(0, 512, speed)) * audioVolume;
-                        printFan.speed = speed;
-                        fanSpeed = speed;
+                                Convert.ToSingle(_currentGcodeLineSection,
+                                    CultureInfo.InvariantCulture), 0f, 255f);
+                        fanAudio.volume = (Mathf.InverseLerp(0, 512, _speed)) * audioVolume;
+                        printFan.speed = _speed;
+                        _fanSpeed = _speed;
                         break;
                 }
             }
@@ -1637,20 +1740,20 @@ namespace Codel1417
         {
             printFan.speed = 0;
             fanAudio.volume = 0;
-            fanSpeed = 0;
+            _fanSpeed = 0;
         }
 
         private void M109(string[] words)
         {
-            isWaitingHotend = true;
-            isBusy = true;
-            lcdMessage = "Heating Hotend";
+            _isWaitingHotend = true;
+            _isBusy = true;
+            _lcdMessage = "Heating Hotend";
             M104(words);
         }
 
         private void M117(string gcode)
         {
-            lcdMessage = gcode.Substring(4);
+            _lcdMessage = gcode.Substring(4);
         }
 
         private void M118(string print)
@@ -1662,18 +1765,16 @@ namespace Codel1417
         {
             for (int i = 1; i < words.Length; i++)
             {
-                string currentGcodeLineSection;
-
                 if (words[i].Length > 0)
                 {
-                    currentGcodeLineSection = words[i].Substring(1);
+                    _currentGcodeLineSection = words[i].Substring(1);
                 }
                 else continue;
 
                 switch (words[i][0])
                 {
                     case 'S':
-                        targetBedTemperature = Mathf.Clamp(Convert.ToInt32(currentGcodeLineSection), 0, 110);
+                        _targetBedTemperature = Mathf.Clamp(Convert.ToInt32(_currentGcodeLineSection), 0, 110);
                         break;
                 }
             }
@@ -1681,9 +1782,9 @@ namespace Codel1417
 
         private void M190(string[] words)
         {
-            isWaitingBed = true;
-            isBusy = true;
-            lcdMessage = "Heating Bed";
+            _isWaitingBed = true;
+            _isBusy = true;
+            _lcdMessage = "Heating Bed";
             M140(words);
         }
     }
