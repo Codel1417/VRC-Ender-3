@@ -9,6 +9,11 @@ using VRC.SDKBase;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 
+// ReSharper disable Unity.PreferAddressByIdToGraphicsParams
+// ReSharper disable CheckNamespace
+// ReSharper disable FieldCanBeMadeReadOnly.Local
+// ReSharper disable UseObjectOrCollectionInitializer
+// ReSharper disable UseArrayEmptyMethod
 namespace Codel1417
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
@@ -19,25 +24,28 @@ namespace Codel1417
         private string[] _modelName;
         private int[] _cardID;
 
-        [Header("Colors")] [ColorUsage(false)] [SerializeField]
+        [Header("Colors")] [ColorUsage(false,false)] [SerializeField]
         private Color plasticColor = new Color(255, 0, 0);
 
-        [ColorUsage(false)] [SerializeField] private Color backgroundColor = new Color(0, 0, 255);
-        [ColorUsage(false)] [SerializeField] private Color foregroundColor = new Color(255, 255, 255);
+        [ColorUsage(false,false)] [SerializeField] private Color backgroundColor = new Color(0, 0, 255);
+        [ColorUsage(false,false)] [SerializeField] private Color foregroundColor = new Color(255, 255, 255);
 
         [Header("Other Options")]
         [Tooltip("Slows down the print to more realistic speeds")]
-        [Range(50f, 1000f)]
+        [Range(50, 1000)]
         [UdonSynced]
-        public float printerSpeed = 100f;
+        public int printerSpeed = 100;
 
         [Tooltip("Temperature in C")] [SerializeField] [Range(10f, 45f)]
         private float ambientTemperature = 20f;
 
-        [Range(0, 1)] [SerializeField] private float audioVolume = 1f;
+        [Range(0, 1)] [SerializeField] private float audioVolume = 0.1f;
 
         [Tooltip("Automatically print file 0 on sd card 0")] [SerializeField]
-        private bool autoStartPrint;
+        private bool autoStartPrint = true;
+        
+        [Tooltip("Run in FixedUpdate instead if Update")]
+        public bool useFixedUpdate = true;
 
         [Header("Printer Objects")] [Tooltip("Vertical Axis")] [SerializeField]
         private Transform zAxis;
@@ -48,46 +56,50 @@ namespace Codel1417
         [Tooltip("Left/Right Axis")] [SerializeField]
         private Transform xAxis;
 
-        [SerializeField] private Animator printFan;
+        private Animator printFan;
 
         [Tooltip("The point the hotend nozzle is located")] [SerializeField]
         private Transform nozzle;
 
-        [SerializeField] private TrailRenderer trailRenderer;
+        private TrailRenderer trailRenderer;
         [SerializeField] private BoxCollider pickupObject;
         private string[] _gcodeFile = new string[1];
-        [UdonSynced] [HideInInspector] public int loadedSdCard;
+        [HideInInspector] public int loadedSdCard;
         private int _gcodeFileSelected;
         [SerializeField] private GameObject gcodeFilesParent;
-        [UdonSynced] [HideInInspector] public int networkFileSelected;
+        [UdonSynced] 
+        [HideInInspector]
+        public int networkFileSelected;
         private int _gcodeFilePosition;
-        [UdonSynced] [HideInInspector] public int networkFilePosition;
-        [NonSerialized] public string[] PopupOptions = { "X Axis", "Y Axis", "Z Axis" };
+        [UdonSynced] 
+        [HideInInspector] 
+        public int networkFilePosition;
+        //[NonSerialized] public string[] PopupOptions = { "X Axis", "Y Axis", "Z Axis" };
 
-        [Header("Axis Assignment")] [SerializeField]
-        private Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f);
+        [Header("Axis Assignment")]
+        [SerializeField] private Vector3 minPosition = new Vector3(-0.03462034f, -0.04733565f, 0.007330472f);
 
         //[Popup("@popupOptions")]
-        [SerializeField] public int xAxisMovementAxis;
+        private int xAxisMovementAxis;
 
         //[Popup("@popupOptions")]
-        [SerializeField] public int yAxisMovementAxis = 2;
-
-        [SerializeField]
+        private int yAxisMovementAxis = 2;
+        
         //[Popup("@popupOptions")]
-        public int zAxisMovementAxis = 1;
+        private int zAxisMovementAxis = 1;
 
-        [Tooltip("The max position for each axis. How far should each axis move")] [SerializeField]
-        private Vector3 maxPosition = new Vector3(0.2f, -0.2f, -0.24f);
+        [Tooltip("The max position for each axis. How far should each axis move")]
+        [SerializeField] private Vector3 maxPosition = new Vector3(0.2f, -0.2f, -0.24f);
 
-        private Vector3 printerSizeInMM = new Vector3(235, 235, 250);
+        private Vector3 _printerSizeInMm = new Vector3(235, 235, 250);
         private Vector3 _normalPosition;
         private Vector3 _calcVelocity, _currentPosition, _printerCordPosition;
         private Vector3 _velocity;
         private bool _isBusy;
-        [UdonSynced] [HideInInspector] public bool isPrinting;
+        private bool _isPrinting;
         private bool _isFileLoaded;
-        [UdonSynced] [HideInInspector] public bool isPaused;
+        [UdonSynced] 
+        [HideInInspector] public bool isPaused;
         private bool _isWaitingHotend, _isWaitingBed;
         private bool _isManualProgress;
         private float _printProgress;
@@ -154,15 +166,15 @@ namespace Codel1417
 
         //private MeshFilter[] meshObjects = new MeshFilter[1000];
         //private int meshObjectCount = 0;
-        private string[] previousPage = new string[10];
+        private string[] _previousPage = new string[10];
         private int _pageDepth;
         private string _lcdMessage = "";
         private bool _extrudeCheck;
         private Stopwatch _stopWatch = new Stopwatch();
-        [SerializeField] private Material lineMaterial;
-        private float catchUpTimeout = 20f;
-        [Header("Audio")] [SerializeField] private AudioSource fanAudio;
-        [SerializeField] private AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
+        private Material lineMaterial;
+        private const float CATCH_UP_TIMEOUT = 20f;
+        [Header("Audio")] private AudioSource fanAudio;
+        private AudioSource speaker, xMotorAudio, yMotorAudio, zMotorAudio;
         private const string VERSION_INFO = "V1.2 by CodeL1417";
         private float _printerScale;
 
@@ -185,8 +197,11 @@ namespace Codel1417
         private CombineInstance[] _combine = new CombineInstance[2];
         private Mesh _bigMesh;
         private Mesh _combined;
+        private float _timeStep;
+        private bool _isVket;
         public override void OnDeserialization()
         {
+            if (_isVket) return;
             //If the person joins late make sure the correct file is loaded
             if (networkFileSelected == _gcodeFileSelected) return;
             _gcodeFileSelected = networkFileSelected;
@@ -196,28 +211,48 @@ namespace Codel1417
 
         public void _VketStart()
         {
+            UnityEngine.Debug.Log("[EnderVR] VKet Start");  
+            _isVket = true;
             InitialStart();
         }
 
         private void Start()
         {
-            _VketStart();
+            trailRenderer = GetComponent<TrailRenderer>();
+            InitialStart();
         }
 
         public void _VketOnBoothEnter()
-        {
+        {            
+            UnityEngine.Debug.Log("[EnderVR] VKet Booth Entered");
+            xMotorAudio.enabled = true;
+            yMotorAudio.enabled = true;
+            zMotorAudio.enabled = true;
+            speaker.enabled = true;
+            fanAudio.enabled = true;
+        
+            _isVket = true;
             _isMeshHidden = false;
             meshFilter.gameObject.SetActive(!_isMeshHidden);
         }
 
         public void _VketOnBoothExit()
         {
+            UnityEngine.Debug.Log("[EnderVR] VKet Booth Exited");
+            xMotorAudio.enabled = false;
+            yMotorAudio.enabled = false;
+            zMotorAudio.enabled = false;
+            speaker.enabled = false;
+            fanAudio.enabled = false;
+            _isVket = true;
             _isMeshHidden = true;
             meshFilter.gameObject.SetActive(!_isMeshHidden);
         }
 
         private void InitialStart()
-        {       
+        {   
+            UnityEngine.Debug.Log("[EnderVR] Starting");   
+            _timeStep = 0;
             _combined = new Mesh();
             _trailGeneratedMesh = new Mesh();
             _trailGeneratedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -226,7 +261,24 @@ namespace Codel1417
             meshFilter.mesh = _bigMesh;
             _combine[0].mesh = _trailGeneratedMesh;
             _combine[1].mesh = _bigMesh;
-
+            
+            trailRenderer = GetComponentInChildren<TrailRenderer>();
+            lineMaterial = trailRenderer.sharedMaterial;
+            printFan = xAxis.GetComponentInChildren<Animator>();
+            
+            // Set up audio
+            xMotorAudio = zAxis.transform.GetComponentInChildren<AudioSource>();
+            yMotorAudio = transform.Find("Y Axis Audio").GetComponent<AudioSource>();
+            zMotorAudio = transform.Find("Z Axis Audio").GetComponent<AudioSource>();
+            speaker = transform.Find("Canvas").GetComponent<AudioSource>();
+            fanAudio = printFan.GetComponent<AudioSource>();
+            xMotorAudio.enabled = true;
+            yMotorAudio.enabled = true;
+            zMotorAudio.enabled = true;
+            speaker.enabled = true;
+            fanAudio.enabled = true;
+            UpdateAudioVolume();
+            
             //Load files
             _files = gcodeFilesParent.GetComponentsInChildren<GcodeFile>();
             _modelName = new string[_files.Length];
@@ -262,27 +314,27 @@ namespace Codel1417
             lineMaterial.SetFloat("_Width", 0.00035f * _printerScale);
             M107(); //sets default fanspeed of 0
             _lcdMessage = VERSION_INFO;
-            _printerCordPosition.x = Mathf.Lerp(0f, printerSizeInMM.x, _currentPosition.x);
-            _printerCordPosition.y = Mathf.Lerp(0f, printerSizeInMM.y, _currentPosition.y);
-            _printerCordPosition.z = Mathf.Lerp(0f, printerSizeInMM.z, _currentPosition.z);
-            UpdateAudioVolume();
-            isPrinting = autoStartPrint;
+            _printerCordPosition.x = Mathf.Lerp(0f, _printerSizeInMm.x, _currentPosition.x);
+            _printerCordPosition.y = Mathf.Lerp(0f, _printerSizeInMm.y, _currentPosition.y);
+            _printerCordPosition.z = Mathf.Lerp(0f, _printerSizeInMm.z, _currentPosition.z);
+            _isPrinting = autoStartPrint;
             ReadFile(_gCode[0]); //load default file
 
-            //generateBounds();
+            UnityEngine.Debug.Log("[EnderVR] Started");
         }
 
         public override void OnPreSerialization()
         {
-            if (Networking.IsOwner(gameObject))
+            if (Networking.IsOwner(gameObject) && !_isVket)
             {
                 networkFilePosition = _gcodeFilePosition;
             }
         }
 
+        // ReSharper disable once MemberCanBePrivate.Global
         public void PrintFinished()
         {
-            isPrinting = false;
+            _isPrinting = false;
             _targetHotendTemperature = 0;
             _targetBedTemperature = 0;
             M107();
@@ -290,17 +342,26 @@ namespace Codel1417
             _extrudeCheck = false;
             _lcdMessage = "Finished";
             GenerateMesh();
-            meshFilter.transform.SetParent(pickupObject.transform);
+            //meshFilter.transform.SetParent(pickupObject.transform);
+            Mesh mesh;
+            (mesh = meshFilter.mesh).RecalculateBounds();
             pickupObject.enabled = true;
+            pickupObject.center = mesh.bounds.center;
+            pickupObject.size = mesh.bounds.size;
+            _pickup.enabled = true;
+            _pickup.UseText = "Ender VR: " + _modelName[_gcodeFileSelected];
+            _pickup.InteractionText = "Ender VR: " + _modelName[_gcodeFileSelected];
+            _objectSync.enabled = true;
+            UnityEngine.Debug.Log("[EnderVR] Print Finished");  
         }
 
-        private int _networkSyncOwner;
+        private int _networkSyncGap;
         private void ReSync()
         {
-            _networkSyncOwner = networkFilePosition - _gcodeFilePosition;
-            if (_networkSyncOwner > 500)
+            _networkSyncGap = networkFilePosition - _gcodeFilePosition;
+            if (_networkSyncGap > 500)
             {
-                isPrinting = true;
+                _isPrinting = true;
                 _stopWatch.Start();
                 _lcdMessage = "Syncing";
                 _isWaitingBed = false;
@@ -319,19 +380,23 @@ namespace Codel1417
                         _gcodeFilePosition++;
                     }
 
-                    if (_stopWatch.ElapsedMilliseconds > catchUpTimeout)
+                    if (_stopWatch.ElapsedMilliseconds > CATCH_UP_TIMEOUT)
                     {
                         break;
                     }
                 }
 
-                if (_networkSyncOwner < 500)
-                {
-                    _lcdMessage = VERSION_INFO;
-                }
-
                 _stopWatch.Stop();
                 _stopWatch.Reset();
+            }
+            else if (_networkSyncGap < -500 && !Networking.IsOwner(gameObject))
+            {
+                _isPrinting = false;
+                _lcdMessage = "Waiting for Master";
+            }
+            else
+            {
+                _lcdMessage = VERSION_INFO;
             }
         }
 
@@ -344,21 +409,52 @@ namespace Codel1417
 
         private void FixedUpdate()
         {
-            UpdateLoop();
+            if (useFixedUpdate)
+            {
+                _timeStep = Time.fixedDeltaTime;
+                UpdateLoop();
+            }
+        }
+
+        private void Update()
+        {
+            if (!useFixedUpdate)
+            {
+                _timeStep = Time.deltaTime;
+                UpdateLoop();
+            }
         }
 
         public void _VketFixedUpdate()
         {
-            UpdateLoop();
+            if (useFixedUpdate)
+            {
+                _timeStep = Time.fixedDeltaTime;
+                UpdateLoop();
+            }
         }
 
+        public void _VketUpdate()
+        {
+            if (!useFixedUpdate)
+            {
+                _timeStep = Time.deltaTime;
+                UpdateLoop();
+            }
+        }
         private void UpdateLoop()
         {
             ReSync();
             Heaters();
-            Move();
-            MotorSounds();
-            if (isPrinting)
+            if (_isBusy)
+            {
+                Move();
+            }
+            if (audioVolume > 0.01f)
+            {
+                MotorSounds();
+            }
+            if (_isPrinting)
             {
                 if (_isFileLoaded)
                 {
@@ -381,7 +477,14 @@ namespace Codel1417
                 }
                 else
                 {
-                    SendCustomNetworkEvent(NetworkEventTarget.All, "StartPrint");
+                    if (_isVket)
+                    {
+                        StartPrint();
+                    }
+                    else
+                    {
+                        SendCustomNetworkEvent(NetworkEventTarget.All, "StartPrint");
+                    }
                 }
             }
             Periodically();
@@ -389,12 +492,16 @@ namespace Codel1417
 
         private void Periodically()
         {
-            _timeMin += Time.fixedDeltaTime;
+            _timeMin += _timeStep;
+
             if (_timeMin >= 1f)
             {
                 _timeMin -= 1;
                 Display();
-                RequestSerialization(); //Manual Sync go burr
+                if (!_isVket)
+                {
+                    RequestSerialization(); //Manual Sync go burr
+                }
             }
             else if (_pageDepth != 0)
             {
@@ -402,11 +509,12 @@ namespace Codel1417
             }
         }
 
+        // ReSharper disable once MemberCanBePrivate.Global
         public void StartPrint()
         {
             networkFileSelected = _gcodeFileSelected;
             ReadFile(_gCode[_gcodeFileSelected]);
-            isPrinting = true;
+            _isPrinting = true;
             isPaused = false;
             _extrudeCheck = false;
             _lcdMessage = "Printing";
@@ -414,7 +522,11 @@ namespace Codel1417
             _gcodeFilePosition = 0;
             networkFilePosition = 0;
             CleanupMesh();
-            RequestSerialization();
+            if (!_isVket)
+            {
+                RequestSerialization();
+            }
+            UnityEngine.Debug.Log("[EnderVR] Print Started");  
         }
 
         //clears them display
@@ -490,21 +602,45 @@ namespace Codel1417
                 {
                     case "Start Print?":
                         _displayStatus();
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "StartPrint");
+                        if (_isVket)
+                        {
+                            StartPrint();
+                        }
+                        else
+                        {
+                            Networking.SetOwner(Networking.LocalPlayer,gameObject);
+                            SendCustomNetworkEvent(NetworkEventTarget.All, "StartPrint");
+                        }
                         break;
                     case "Cancel Print?":
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "PrintFinished");
+                        if (_isVket)
+                        {
+                            PrintFinished();
+                        }
+                        else
+                        {
+                            Networking.SetOwner(Networking.LocalPlayer,gameObject);
+                            SendCustomNetworkEvent(NetworkEventTarget.All, "PrintFinished");
+                        }
                         _displayStatus();
                         break;
                     case "Reset Printer?":
-                        SendCustomNetworkEvent(NetworkEventTarget.All, "ResetPrinter");
+                        if (_isVket)
+                        {
+                            ResetPrinter();
+                        }
+                        else
+                        {
+                            Networking.SetOwner(Networking.LocalPlayer,gameObject);
+                            SendCustomNetworkEvent(NetworkEventTarget.All, "ResetPrinter");
+                        }
                         _displayStatus();
-                        _displayStatus();
+                        _displayStatus(); // I dont remember why i called this twice.
                         break;
                     case "Enter Gcode":
                         _displayStatus();
                         _gcodeFile = gcodeInput.text.Split('\n');
-                        isPrinting = true;
+                        _isPrinting = true;
                         _isFileLoaded = true;
                         _gcodeFilePosition = 0;
                         networkFilePosition = 0;
@@ -524,6 +660,7 @@ namespace Codel1417
         }
 
         private string _previous;
+        // ReSharper disable once MemberCanBePrivate.Global
         public void _back()
         {
             if (_pageDepth <= 1)
@@ -533,7 +670,7 @@ namespace Codel1417
                 return;
             }
             _pageDepth = _pageDepth - 2;
-            _previous = previousPage[_pageDepth];
+            _previous = _previousPage[_pageDepth];
             switch (_previous)
             {
                 case "Gcode Input":
@@ -549,7 +686,7 @@ namespace Codel1417
 
         private void AddPage(string page)
         {
-            previousPage[_pageDepth] = page;
+            _previousPage[_pageDepth] = page;
             _pageDepth++;
         }
 
@@ -627,9 +764,10 @@ namespace Codel1417
             textCancel.color = foregroundColor;
         }
 
+        // ReSharper disable once MemberCanBePrivate.Global
         public void ResetPrinter()
         {
-            isPrinting = false;
+            _isPrinting = false;
             _targetHotendTemperature = 0;
             _targetBedTemperature = 0;
             M107();
@@ -647,7 +785,10 @@ namespace Codel1417
             _extrudeCheck = false;
             _lcdMessage = VERSION_INFO;
             _totalVertices = 0;
-            RequestSerialization();
+            if (!_isVket)
+            {
+                RequestSerialization();
+            }
         }
 
         private void CleanupMesh()
@@ -661,7 +802,12 @@ namespace Codel1417
             _pickup.Drop();
             _objectSync.Respawn();
             pickupObject.enabled = false;
+            _objectSync.enabled = false;
+            _pickup.enabled = false;
+            _pickup.UseText = "Ender VR";
+            _pickup.InteractionText = "Ender VR";
         }
+        
 
         private int[] _fileiD;
         private int _fileLength;
@@ -694,7 +840,7 @@ namespace Codel1417
             else if (pageTitle == "Printer Control")
             {
                 //lock during print, provide different menu
-                if (isPrinting)
+                if (_isPrinting)
                 {
                     _options = new[] { "Pause Print", "Cancel Print" };
                 }
@@ -818,7 +964,10 @@ namespace Codel1417
                         break;
                 }
 
-                RequestSerialization();
+                if (!_isVket)
+                {
+                    RequestSerialization();
+                }
             }
 
         }
@@ -839,7 +988,10 @@ namespace Codel1417
             _displayStatus();
             speaker.Play();
             _lcdMessage = "SD Card Inserted";
-            RequestSerialization();
+            if (!_isVket)
+            {
+                RequestSerialization();
+            }
         }
 
         public void _up()
@@ -899,23 +1051,9 @@ namespace Codel1417
                 textOption4.text = _options[3 + _listPagePosition];
             }
 
-            if (_options.Length > (4 + _listPagePosition))
-            {
-                imageDown.gameObject.SetActive(true);
-            }
-            else
-            {
-                imageDown.gameObject.SetActive(false);
-            }
+            imageDown.gameObject.SetActive(_options.Length > (4 + _listPagePosition));
 
-            if (_listPagePosition > 0)
-            {
-                imageUp.gameObject.SetActive(true);
-            }
-            else
-            {
-                imageUp.gameObject.SetActive(false);
-            }
+            imageUp.gameObject.SetActive(_listPagePosition > 0);
         }
 
         public void _displayListOption1()
@@ -949,27 +1087,27 @@ namespace Codel1417
             
             if (xMotorAudio.pitch == 0)
             {
-                xMotorAudio.Stop();
+                //xMotorAudio.Stop();
             }
             else
             {
-                xMotorAudio.Play();
+                //xMotorAudio.Play();
             }
             if (yMotorAudio.pitch == 0)
             {
-                yMotorAudio.Stop();
+                //yMotorAudio.Stop();
             }
             else
             {
-                yMotorAudio.Play();
+                //yMotorAudio.Play();
             }
             if (zMotorAudio.pitch == 0)
             {
-                zMotorAudio.Stop();
+                //zMotorAudio.Stop();
             }
             else
             {
-                zMotorAudio.Play();
+                //zMotorAudio.Play();
             }
         }
 
@@ -992,7 +1130,7 @@ namespace Codel1417
             _minutes = Mathf.Floor(_timeElapsed / 60f);
             _hours = Mathf.Floor(_minutes / 60);
             _seconds = _timeElapsed - (_minutes * 60);
-            if (!isPrinting)
+            if (!_isPrinting)
             {
                 return "00:00";
             }
@@ -1054,7 +1192,7 @@ namespace Codel1417
                                     "\nFeedRate: " + _feedRate + "\nisRelativeG0: " + _isRelativeMovement;
                     break;
                 case "Status":
-                    textPage.text = "isPrinting: " + isPrinting + "\nisBusy: " + _isBusy + "\nisPaused: " + isPaused +
+                    textPage.text = "isPrinting: " + _isPrinting + "\nisBusy: " + _isBusy + "\nisPaused: " + isPaused +
                                     "\nisWaitingHotend: " + _isWaitingHotend + "\nisWaitingBed: " + _isWaitingBed +
                                     "\nisManualProgress: " + _isManualProgress + "\nisExtrude: " + _extrudeCheck;
                     break;
@@ -1195,7 +1333,7 @@ namespace Codel1417
             switch (textPageTitle.text)
             {
                 case "Speed":
-                    printerSpeed = Mathf.Clamp(printerSpeed + value, 50f, 1000f);
+                    printerSpeed = Mathf.Clamp(printerSpeed + value, 50, 1000);
                     break;
                 case "Audio Volume":
                     audioVolume = Mathf.Clamp(audioVolume + (value * 0.01f), 0f, 1f);
@@ -1213,26 +1351,29 @@ namespace Codel1417
                     fanAudio.volume = (Mathf.InverseLerp(0, 1024, _fanSpeed));
                     break;
                 case "Move X Axis":
-                    _printerCordPosition.x = Mathf.Clamp(_printerCordPosition.x + value, 0, printerSizeInMM.x);
-                    _normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, _printerCordPosition.x + value);
+                    _printerCordPosition.x = Mathf.Clamp(_printerCordPosition.x + value, 0, _printerSizeInMm.x);
+                    _normalPosition.x = Mathf.InverseLerp(0, _printerSizeInMm.x, _printerCordPosition.x + value);
                     _isBusy = true;
                     _feedRate = 30;
                     break;
                 case "Move Y Axis":
-                    _printerCordPosition.y = Mathf.Clamp(_printerCordPosition.y + value, 0, printerSizeInMM.y);
-                    _normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, _printerCordPosition.y + value);
+                    _printerCordPosition.y = Mathf.Clamp(_printerCordPosition.y + value, 0, _printerSizeInMm.y);
+                    _normalPosition.y = Mathf.InverseLerp(0, _printerSizeInMm.y, _printerCordPosition.y + value);
                     _isBusy = true;
                     _feedRate = 30;
                     break;
                 case "Move Z Axis":
-                    _printerCordPosition.z = Mathf.Clamp(_printerCordPosition.z + value, 0, printerSizeInMM.z);
-                    _normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, _printerCordPosition.z + value);
+                    _printerCordPosition.z = Mathf.Clamp(_printerCordPosition.z + value, 0, _printerSizeInMm.z);
+                    _normalPosition.z = Mathf.InverseLerp(0, _printerSizeInMm.z, _printerCordPosition.z + value);
                     _isBusy = true;
                     break;
             }
 
             DisplayValue();
-            RequestSerialization();
+            if (!_isVket)
+            {
+                RequestSerialization();
+            }
         }
 
         public void _add1()
@@ -1453,20 +1594,20 @@ namespace Codel1417
         {
             //ambient cooldown
             _currentBedTemperature = Mathf.MoveTowards(_currentBedTemperature, ambientTemperature,
-                0.1f * Time.deltaTime * (printerSpeed / 100));
+                0.1f * _timeStep * (printerSpeed / 100f));
             _currentHotendTemperature = Mathf.MoveTowards(_currentHotendTemperature, ambientTemperature,
-                0.5f * Time.deltaTime * (printerSpeed / 100));
+                0.5f * _timeStep * (printerSpeed / 100f));
 
             if (_targetBedTemperature > ambientTemperature)
             {
                 _currentBedTemperature = Mathf.MoveTowards(_currentBedTemperature, _targetBedTemperature,
-                    0.5f * Time.deltaTime * (printerSpeed / 100));
+                    0.5f * _timeStep * (printerSpeed / 100f));
             }
 
             if (_targetHotendTemperature > ambientTemperature)
             {
                 _currentHotendTemperature = Mathf.MoveTowards(_currentHotendTemperature, _targetHotendTemperature,
-                    2f * Time.deltaTime * (printerSpeed / 100));
+                    2f * _timeStep * (printerSpeed / 100f));
             }
 
             if (Mathf.Approximately(_currentBedTemperature, _targetBedTemperature))
@@ -1603,13 +1744,13 @@ namespace Codel1417
                         _value = Convert.ToSingle(_currentGcodeLineSection);
                         if (_isRelativeMovement)
                         {
-                            _printerCordPosition.x = Mathf.Clamp(_printerCordPosition.x + _value, 0f, printerSizeInMM.x);
-                            _normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, _printerCordPosition.x);
+                            _printerCordPosition.x = Mathf.Clamp(_printerCordPosition.x + _value, 0f, _printerSizeInMm.x);
+                            _normalPosition.x = Mathf.InverseLerp(0, _printerSizeInMm.x, _printerCordPosition.x);
                         }
                         else
                         {
                             _printerCordPosition.x = _value;
-                            _normalPosition.x = Mathf.InverseLerp(0, printerSizeInMM.x, _value);
+                            _normalPosition.x = Mathf.InverseLerp(0, _printerSizeInMm.x, _value);
                         }
 
                         break;
@@ -1617,14 +1758,14 @@ namespace Codel1417
                         _value1 = Convert.ToSingle(_currentGcodeLineSection);
                         if (_isRelativeMovement)
                         {
-                            _printerCordPosition.y = Mathf.Clamp(_printerCordPosition.y + _value1, 0f, printerSizeInMM.y);
-                            _normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, _printerCordPosition.y);
+                            _printerCordPosition.y = Mathf.Clamp(_printerCordPosition.y + _value1, 0f, _printerSizeInMm.y);
+                            _normalPosition.y = Mathf.InverseLerp(0, _printerSizeInMm.y, _printerCordPosition.y);
 
                         }
                         else
                         {
                             _printerCordPosition.y = _value1;
-                            _normalPosition.y = Mathf.InverseLerp(0, printerSizeInMM.y, _value1);
+                            _normalPosition.y = Mathf.InverseLerp(0, _printerSizeInMm.y, _value1);
                         }
 
                         break;
@@ -1632,14 +1773,14 @@ namespace Codel1417
                         _value2 = Convert.ToSingle(_currentGcodeLineSection);
                         if (_isRelativeMovement)
                         {
-                            _printerCordPosition.z = Mathf.Clamp(_printerCordPosition.z + _value2, 0f, printerSizeInMM.z);
-                            _normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, _printerCordPosition.z);
+                            _printerCordPosition.z = Mathf.Clamp(_printerCordPosition.z + _value2, 0f, _printerSizeInMm.z);
+                            _normalPosition.z = Mathf.InverseLerp(0, _printerSizeInMm.z, _printerCordPosition.z);
 
                         }
                         else
                         {
                             _printerCordPosition.z = _value2;
-                            _normalPosition.z = Mathf.InverseLerp(0, printerSizeInMM.z, _value2);
+                            _normalPosition.z = Mathf.InverseLerp(0, _printerSizeInMm.z, _value2);
                         }
 
                         break;

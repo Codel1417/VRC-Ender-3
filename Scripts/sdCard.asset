@@ -49,7 +49,7 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _SDCard_id
+      Data: sdCardID
     - Name: $v
       Entry: 7
       Data: 2|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
@@ -61,7 +61,7 @@ MonoBehaviour:
       Data: 4|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: System.Int32, mscorlib
+      Data: System.Byte, mscorlib
     - Name: 
       Entry: 8
       Data: 
@@ -73,13 +73,13 @@ MonoBehaviour:
       Data: 0
     - Name: symbolResolvedTypeName
       Entry: 1
-      Data: SystemInt32
+      Data: SystemByte
     - Name: symbolOriginalName
       Entry: 1
-      Data: _SDCard_id
+      Data: sdCardID
     - Name: symbolUniqueName
       Entry: 1
-      Data: _SDCard_id
+      Data: sdCardID
     - Name: symbolDefaultValue
       Entry: 6
       Data: 
@@ -121,7 +121,7 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _is_a_SD_Card
+      Data: isAsdCard
     - Name: $v
       Entry: 7
       Data: 7|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
@@ -148,10 +148,10 @@ MonoBehaviour:
       Data: SystemBoolean
     - Name: symbolOriginalName
       Entry: 1
-      Data: _is_a_SD_Card
+      Data: isAsdCard
     - Name: symbolUniqueName
       Entry: 1
-      Data: _is_a_SD_Card
+      Data: isAsdCard
     - Name: symbolDefaultValue
       Entry: 6
       Data: 

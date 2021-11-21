@@ -1,4 +1,5 @@
 ﻿
+using System;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
@@ -9,18 +10,24 @@ namespace Codel1417
     [RequireComponent(typeof(BoxCollider))]
     public class sdReader : UdonSharpBehaviour
     {
-        public Ender3 _printer;
+        private Ender3 _printer;
+
+        private void Start()
+        {
+            _printer = GetComponentInParent<Ender3>();
+        }
 
         public void OnCollisionEnter(Collision collision){
             if (!Networking.IsMaster) {
                 return;
             }
             sdCard item = collision.gameObject.GetComponent<sdCard>();
+            
             if (!Utilities.IsValid(item) || item == null){
                 return;
             }
-            if ((bool) item._is_a_SD_Card){
-                _printer.loadedSdCard = item._SDCard_id;
+            if (item.isAsdCard){
+                _printer.loadedSdCard = item.sdCardID;
                 _printer._sdInsert();
             }
         }

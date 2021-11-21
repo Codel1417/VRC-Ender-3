@@ -9,8 +9,8 @@ namespace Codel1417
     public class sdCard : UdonSharpBehaviour
     {
         [Tooltip("The ID associated with the gcode files on the printer")]
-        public int _SDCard_id = 1;
+        public byte sdCardID = 1;
         [HideInInspector]
-        public bool _is_a_SD_Card = true;
+        public bool isAsdCard = true;
     }
 }
