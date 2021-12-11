@@ -26,9 +26,9 @@ namespace Codel1417
             if (!Utilities.IsValid(item) || item == null){
                 return;
             }
-            if (item.isAsdCard){
-                _printer.loadedSdCard = item.sdCardID;
-                _printer._sdInsert();
+            if (item.isAsdCard)
+            {
+                _printer._sdInsert(item.sdCardID);
             }
         }
     }

@@ -51,12 +51,14 @@ SpriteAtlas:
     - {fileID: 2800000, guid: e84a7423a1085894484672ccde11c7c5, type: 3}
     - {fileID: 2800000, guid: 2da169f268289c4458448b818f905f21, type: 3}
     - {fileID: 2800000, guid: d217aaade1baac747a7908cea9760b41, type: 3}
+    - {fileID: 21300000, guid: 1ccfb953e98676c4e9041355c6b71ad0, type: 3}
     bindAsDefault: 1
   m_MasterAtlas: {fileID: 0}
   m_PackedSprites:
   - {fileID: 21300000, guid: 2143f17182128aa40a7dd2bb74eab0c7, type: 3}
   - {fileID: 21300000, guid: 2da169f268289c4458448b818f905f21, type: 3}
   - {fileID: 21300000, guid: e84a7423a1085894484672ccde11c7c5, type: 3}
+  - {fileID: 21300000, guid: 1ccfb953e98676c4e9041355c6b71ad0, type: 3}
   - {fileID: 21300000, guid: a46161746d57c90439caed27e3490522, type: 3}
   - {fileID: 21300000, guid: eef5e9e5744fdd748b63107b4ee29c23, type: 3}
   - {fileID: 21300000, guid: 0ddbb39ae311ab8419d1b692523f90a2, type: 3}
@@ -67,6 +69,7 @@ SpriteAtlas:
   - confirm
   - sd_icon
   - hotend_icon
+  - qr-code
   - bed_heating
   - fan_1
   - back
