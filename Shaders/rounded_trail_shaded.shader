@@ -126,10 +126,10 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 	{
 		LOD 100
 		Cull Off
-
+		ZWrite On
 		Pass
 		{
-			Tags {"LightMode"="ForwardBase" }
+			Tags {"LightMode"="ForwardBase" "RenderType"="Opaque"}
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma geometry geom
