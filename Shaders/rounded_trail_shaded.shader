@@ -158,7 +158,7 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 				float totalDistance : TEXCOORD1;
 				float2 dn : TEXCOORD2;
 				centroid float3 normal : TEXCOORD3;
-				float3 tangent : TEXCOORD4;
+				centroid float3 tangent : TEXCOORD4;
 				float3 worldPos: TEXCOORD5;
 				float4 screenPos : TEXCOORD6;
 				centroid float4 color : COLOR;
@@ -228,7 +228,7 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 				return normalize(mul((float3x3)unity_CameraToWorld, (pos1 - pos2).xyz));
 			}
 
-			[maxvertexcount(4)]
+			[maxvertexcount(4)] // Awoo wan here
 			void geom(triangle v2g IN[3], inout TriangleStream<trailG2F> stream) {
 				trailG2F o = (trailG2F)0;
 				o.uv = 0;
@@ -249,7 +249,7 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 				float3 localTangent = normalize(secondVertex.xyz - firstVertex.xyz);
 				float3 worldPos0 = mul(unity_ObjectToWorld, firstVertex);
 				float3 worldPos1 = mul(unity_ObjectToWorld, secondVertex);
-				o.tangent = normalize(worldPos1 - worldPos0);
+				o.tangent = Unity_SafeNormalize(worldPos1 - worldPos0);
 				
 				float4 p = UnityObjectToClipPos(firstVertex);
 				float4 q = UnityObjectToClipPos(secondVertex);
@@ -364,9 +364,9 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 				//if (0.5 - min(i.dn.x, l) < 0) { return float4(0,0,0,1); } //clip(0.5 - min(i.dn.x, l));
 				float normalLengthSq = dot(i.normal, i.normal);
 				float3 dirToCam = normalize(_WorldSpaceCameraPos - i.worldPos);
-				float3 origNormal = normalize(i.normal);
+				//float3 origNormal = normalize(i.normal);
 				float3 newNormal = dirToCam - dot(dirToCam, i.tangent) * i.tangent;
-				i.normal += newNormal * sqrt(1 - normalLengthSq);
+				i.normal += newNormal * sqrt(max(0.001,1 - normalLengthSq));
 				i.normal = lerp(dirToCam, i.normal, pow(smoothstep(0.4, 1.0, saturate(.5*min(i.dn.y*_ScreenParams.x, i.dn.y*_ScreenParams.y))), 0.5));
 				//min(i.dn.y/_ScreenParams.x, i.dn.y/_ScreenParams.y))); //smoothstep(1000/length(_ScreenParams.xy), 2000/length(_ScreenParams.xy), length(i.dn.y)));
 				i.normal = normalize(i.normal);
@@ -381,16 +381,16 @@ _RTLMStrength("Realtime Lightmap Strength", Range(0,1)) = 1
 				float2 matcapUV = 0.5 + 0.5 * mul((float3x3)UNITY_MATRIX_V, cross(float3(0,1,0),cross(i.normal, float3(0,1,0)))).xy;
 				g2f xsData = (g2f)0;
 				xsData.pos = i.vertex;
-				float3 bitangent = normalize(cross(i.normal, i.tangent));
-				xsData.btn[0] = bitangent;
-				xsData.btn[1] = i.tangent;
-				xsData.btn[2] = i.normal;
+				float3 bitangent = Unity_SafeNormalize(cross(i.normal, i.tangent));
+				xsData.btn[0] = Unity_SafeNormalize(bitangent + float3(0,0.0001,0));
+				xsData.btn[1] = Unity_SafeNormalize(i.tangent + float3(0.0001,0,0));
+				xsData.btn[2] = Unity_SafeNormalize(i.normal + float3(0,0,0.0001));
 				float angle = (atan2(dot(i.normal, -refDir2), dot(i.normal, refDir))) / (6.28) + 0.5;
 				xsData.uv = float2(i.totalDistance / 6.28 / _Width, angle);
 				xsData.uv1 = xsData.uv2 = i.uv;
 				xsData.worldPos = i.worldPos - _Width * bitangent;
 				xsData.objPos = mul(unity_WorldToObject, float4(xsData.worldPos, 1.0)).xyz;
-				xsData.objNormal = mul((float3x3)unity_WorldToObject, i.normal);
+				xsData.objNormal = Unity_SafeNormalize(mul((float3x3)unity_WorldToObject, i.normal));
 				xsData.screenPos = i.screenPos;
 				return CustomStandardLightingBRDF(xsData) * tex2D(_MatcapMul, matcapUV) + float4(tex2D(_MatcapAdd, matcapUV).rgb, 0.0);
 			}
