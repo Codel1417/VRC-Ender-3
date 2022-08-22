@@ -1,10 +1,14 @@
 # VRChat Ender 3 Udon 3D Printer
 
 This is a functional 3d printer in VRChat which prints real [Marlin](https://marlinfw.org/docs/gcode/G000-G001.html) gcode files. Print progress is synced over the network.
+Supports English, UwU, and Japanese languages.
+
+![Large shot of printer](Media/HeaderImage.png)
+
 
 ## Requirements
 
-* [UdonSharp](https://github.com/MerlinVR/UdonSharp) by Merlin
+* [UdonSharp](https://github.com/vrchat-community/UdonSharp) by the VRChat Community
 
 ## How to use
 
@@ -13,14 +17,32 @@ This is a functional 3d printer in VRChat which prints real [Marlin](https://mar
 2) Import the project into your Unity Project.
 3) Place the prefab in your world.
 
-* The Next Few instructions are for adding your own GCode files.
+### Interacting with the printer
 
-4) Change the file extension of your '.gcode file to '.txt'.
+The printer uses a menu inspired by Marlin but with changes to be touch friendly. Buttons are used instead of the rotary wheel the Real Ender 3 uses.
+Use your hand pointer to interact with the printer. Clicking anywhere on the status screen will open the menu.
+
+![Main Menu](Media/MainMenu.png)
+
+### Adding your own GCode to the printer
+1) Change the file extension of your '.gcode file to '.txt'.
     * You may need to Check 'Show File Extensions' in windows explorer.
-5) Duplicate a GameObject under ``Ender_3_VRC/GCode Files`` and set its name to your File Name.
-6) Set the ``File`` variable to your GCode TextAsset '.txt'.
+2) Duplicate a GameObject under ``Ender_3_VRC/GCode Files``.
 
-Compatible GCode can be generated in any Marlin compatible slicer. Ultimaker Cura with the Ender 3 profile works great.
+![GCode Hierarchy showing what code to clone](Media/GCodeHierarchy.png)
+
+7) Set ``File`` to your GCode file '.txt'.
+8) Set the GameObject name to your Model name. This is the name that will be displayed in the UI.
+
+![GCode Inspector](Media/GCodeInspector.png)
+
+Compatible GCode can be generated in any Marlin compatible slicer. [Ultimaker Cura](https://ultimaker.com/software/ultimaker-cura) with the Ender 3 profile works great.
+
+### Customization
+
+The display colors can be set in the Display object. These colors are applied at world load.
+
+![Image of the display inspector](Media/displayCustomization.png)
 
 ## What is GCode?
 
@@ -59,10 +81,25 @@ G1 X0.4 Y20 Z0.3 F1500.0 E30 ; Draw the second line
 * Minimum extrusion temperature is 160C (Cold Extrusion Protection).
 * Incapable of filament pressure simulation.
 * Supports are unnecessary as gravity is a relic of the past.
-* Please do not remove any credits given, Just append to the credits page.
+* Please do not remove any credits given, Just append to the credits pages.
+* Due to the Oculus Quest's lack of geometry shader support, the printer **will not** work on Quest. It will move and print but the printed part will be invisible.
 
 ## Credits
 
 * Filament Shader by [Lyuma](https://github.com/lyuma)
 * Lighting Template by [Xiexe](https://github.com/Xiexe)
-* UdonSharp by [Merlin](https://github.com/MerlinVR/UdonSharp)  
+* UdonSharp by [VRChat Community](https://github.com/vrchat-community/UdonSharp)  
+* Localization by [DeepL](https://www.deepl.com/translator)
+
+## License
+
+Licensed under the [MIT License](LICENSE).
+
+# Other Information
+
+## Adding a language
+
+To add support for an additional language, just place the text file in the Assets/Ender 3/Language folder. The name of the file should be the same as the language.
+On Upload/Play the script will automatically detect the languages.
+
+![Language files in project folder](Media/LanguageFolder.png)

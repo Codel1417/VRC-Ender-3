@@ -1,4 +1,4 @@
-﻿
+
 using UdonSharp;
 using UnityEngine;
 
@@ -9,6 +9,6 @@ namespace Codel1417
     {
         public TextAsset file;
         public int sdCard = 0;
+        [HideInInspector] public int index = 0;
     }
 }
-

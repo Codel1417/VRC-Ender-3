@@ -1,0 +1,64 @@
+﻿Ender VR
+Main Menu
+Enter Gcode
+Start Print?
+Cancel Print?
+Reset Printer?
+Reset Printer
+Toggle Mesh
+Cooldown
+Gcode Input
+Debug
+V1.3 by CodeL1417
+Printer Control
+Speed
+Audio Volume
+Hotend Temp
+Bed Temp
+Fan Speed
+Move X Axis
+Move Y Axis
+Move Z Axis
+Auto Home
+Pause Print
+Cancel Print
+SD Card
+Options
+Position
+QR Code
+Network
+Status
+GCode
+Credits
+Mesh
+SD Card Inserted
+Beep
+LCD Text set to
+Finished
+Print finished
+Started
+Syncing
+Waiting for Master
+Printing
+Started Print
+Cleaned Up Mesh
+Cold Extrusion Prevented
+Generated Mesh
+Reading GCode File
+Relative Movement Mode
+Absolute Movement Mode
+Unknown GCode
+Homing Printer
+Print paused
+Print progress manually updated to
+Target hotend temperature set to
+Fan speed set to
+Fan turned off
+Heating Hotend
+Bed temperature set to
+Heating Bed
+Language
+Code by Codel1417, Lyuma
+Shader by Lyuma, phi16, Xiexe
+UdonSharp By Merlin
+Models by Creality3D, Playingbadly
