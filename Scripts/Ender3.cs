@@ -194,15 +194,6 @@ namespace Codel1417
                 UpdateLoop();
             }
         }
-        
-        public void _VketFixedUpdate()
-        {
-            if (useFixedUpdate)
-            {
-                TimeStep = Time.fixedDeltaTime;
-                UpdateLoop();
-            }
-        }
 
         private void _InitialStart()
         {
@@ -485,7 +476,7 @@ namespace Codel1417
                                     -Mathf.Lerp(_minPosition.y, _maxPosition.y, CurrentPosition.y));
                                 break;
                         }
-                        
+
                         //The Nozzle isnt actually moving in the Y axis (Z World). We have to move the trail position to simulate the movement of the bed.
                         _trailRenderer.AddPosition(transform.TransformPoint(_point));
                         TotalVertices += 2; //technically the shader adds 4 per vert 
